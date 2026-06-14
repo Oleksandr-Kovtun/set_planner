@@ -153,6 +153,7 @@ class DrawnItem {
   final ui.Picture? svgPicture; // розпарсений малюнок (для Tool.svg)
   final Size? svgSize;          // власний розмір svg
   final ui.Path? svgPath;    // контур елемента (у власних координатах SVG)
+  final String? svgPathD;   // вихідний рядок 'd' з SVG <path> (для збереження)
   final ui.Image? image;
   final Rect? svgPathBounds; // межі цього контуру у тих самих координатах
   double opacity = 1.0; // Image Opacity
@@ -164,6 +165,7 @@ class DrawnItem {
   LayerBand band;
   int? groupId; // елементи з однаковим groupId — одна група
   static int _idSeq = 0;
+  static void ensureIdSeqAbove(int id) { if (id >= _idSeq) _idSeq = id; }
   final int id;            // стабільний ідентифікатор (для прив'язки тексту)
   String? text;            // вміст текстового поля
   double fontSize;
@@ -193,6 +195,7 @@ class DrawnItem {
     this.svgPicture,
     this.svgSize,
     this.svgPath,
+    this.svgPathD,
     this.svgPathBounds,
     this.image,
     this.opacity = 1.0,
@@ -227,6 +230,7 @@ class DrawnItem {
         svgPicture: svgPicture,
         svgSize: svgSize,
         svgPath: svgPath,
+        svgPathD: svgPathD,
         svgPathBounds: svgPathBounds,
         image: image,
         opacity: opacity,

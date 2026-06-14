@@ -832,6 +832,28 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void restoreFromProject({
+    required List<DrawnItem> items,
+    required AppSettings settings,
+    double scale = 1.0,
+    Offset offset = Offset.zero,
+  }) {
+    _items.clear();
+    _items.addAll(items);
+    _selection.clear();
+    _undoStack.clear();
+    _redoStack.clear();
+    _activeItem = null;
+    _polylineCursorPos = null;
+    _scale = scale.clamp(minScale, maxScale);
+    _offset = offset;
+    if (settings.language != _settings.language) {
+      strings = AppStrings.of(settings.language);
+    }
+    _settings = settings;
+    notifyListeners();
+  }
+
   Offset _snapToGrid(Offset p) {
     if (!_settings.snapToGrid) return p;
     final gridSize = _settings.gridSize;

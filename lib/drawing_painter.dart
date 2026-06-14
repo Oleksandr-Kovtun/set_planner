@@ -316,8 +316,9 @@ class DrawingPainter extends CustomPainter {
 
     void filled(Rect rect, {bool rounded = false}) {
       if (fill != null) {
-        if (rounded) canvas.drawRRect(RRect.fromRectAndRadius(rect, rr), fill);
-        else canvas.drawRect(rect, fill);
+        if (rounded) {
+          canvas.drawRRect(RRect.fromRectAndRadius(rect, rr), fill);
+        } else canvas.drawRect(rect, fill);
       }
       if (rounded) canvas.drawRRect(RRect.fromRectAndRadius(rect, rr), stroke);
       else canvas.drawRect(rect, stroke);

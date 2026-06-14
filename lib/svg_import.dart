@@ -45,10 +45,12 @@ List<DrawnItem> svgToItems(
     if (nb.width <= 0 && nb.height <= 0) continue;
 
     final st = _resolveStyle(el, classRules);
+    final dAttr = el.getAttribute('d');
     items.add(DrawnItem(
       Tool.svgPath,
       [place(nb.topLeft), place(nb.bottomRight)],
       svgPath: path,
+      svgPathD: dAttr,
       svgPathBounds: nb,
       fillColor: st.fill,
       strokeColor: st.stroke ?? const Color(0xFF000000),
