@@ -249,7 +249,7 @@ class AppStrings {
     viewfinderBig: 'Великий',
     headphones: 'Навушники',
     headphonesNone: 'Немає',
-    headphonesSingle: 'Одні',
+    headphonesSingle: 'Одинарні',
     headphonesDouble: 'Подвійні',
     tripod: 'Штатив',
     tripodDescription: 'Опис штатива',

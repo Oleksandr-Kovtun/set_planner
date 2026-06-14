@@ -790,7 +790,14 @@ class EditorController extends ChangeNotifier {
     } else if (_currentTool == Tool.text) {
       // text creation on tap (onTap)
     } else if (_currentTool == Tool.camera) {
-      // camera placement on tap (onTap)
+      // Camera placement is on tap; but allow dragging an attached table.
+      final tableHit = _hitTestCameraTable(p);
+      if (tableHit != null) {
+        _setSelection({_items.indexOf(tableHit)});
+        _tableDragCamera = tableHit;
+        _interaction = _Interaction.movingTable;
+        notifyListeners();
+      }
     } else if (_currentTool == Tool.polyline) {
       // polyline points are added on tap (onTap), not on pan start
     } else {
@@ -1041,6 +1048,15 @@ class EditorController extends ChangeNotifier {
           }
         }
       }
+      // Table check before _itemAt so rotated cameras don't steal the hit.
+      final tableHit = _hitTestCameraTable(p);
+      if (tableHit != null) {
+        _setSelection({_items.indexOf(tableHit)});
+        _tableDragCamera = tableHit;
+        _interaction = _Interaction.movingTable;
+        notifyListeners();
+        return;
+      }
       final hit = _itemAt(p);
       if (hit != null) {
         if (_additivePressed) {
@@ -1049,14 +1065,6 @@ class EditorController extends ChangeNotifier {
           _setSelection(_groupMembers(hit));
         }
         _interaction = _Interaction.moving;
-        notifyListeners();
-        return;
-      }
-      final tableHit = _hitTestCameraTable(p);
-      if (tableHit != null) {
-        _setSelection({_items.indexOf(tableHit)});
-        _tableDragCamera = tableHit;
-        _interaction = _Interaction.movingTable;
         notifyListeners();
         return;
       }
@@ -1096,6 +1104,15 @@ class EditorController extends ChangeNotifier {
         }
       }
     }
+    // Table check before _itemAt so rotated cameras don't steal the hit.
+    final tableHit = _hitTestCameraTable(p);
+    if (tableHit != null) {
+      _setSelection({_items.indexOf(tableHit)});
+      _tableDragCamera = tableHit;
+      _interaction = _Interaction.movingTable;
+      notifyListeners();
+      return;
+    }
     final hit = _itemAt(p);
     if (hit != null) {
       final members = _groupMembers(hit);
@@ -1105,14 +1122,6 @@ class EditorController extends ChangeNotifier {
         _setSelection(members);
       }
       _interaction = _Interaction.moving;
-      notifyListeners();
-      return;
-    }
-    final tableHit = _hitTestCameraTable(p);
-    if (tableHit != null) {
-      _setSelection({_items.indexOf(tableHit)});
-      _tableDragCamera = tableHit;
-      _interaction = _Interaction.movingTable;
       notifyListeners();
       return;
     }
@@ -1175,7 +1184,9 @@ class EditorController extends ChangeNotifier {
     if (item == null || item.locked) return;
     final center = item.bounds.center;
     final angle = math.atan2(p.dy - center.dy, p.dx - center.dx);
-    item.rotation = angle + math.pi / 2;
+    // Camera handle is on the right (rest angle = 0); other handles are on top (rest angle = -π/2).
+    final restAngle = item.tool == Tool.camera ? 0.0 : math.pi / 2;
+    item.rotation = angle + restAngle;
     notifyListeners();
   }
 
