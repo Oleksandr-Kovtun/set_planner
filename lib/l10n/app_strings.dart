@@ -39,6 +39,17 @@ class AppStrings {
   final String allowResize;
   final String noCameras;
   final String language, languageUk, languageEn;
+  // налаштування (settings dialog)
+  final String settings;
+  final String jpegOutput;
+  final String gridSection;
+  final String uiSection;
+  final String save;
+  final String paperSize, orientation;
+  final String portrait, landscape;
+  final String gridSizeLabel;
+  final String showGrid, snapToGrid;
+  final String primaryColor, pickColor, select;
 
   const AppStrings({
     required this.appTitle,
@@ -143,6 +154,21 @@ class AppStrings {
     required this.language,
     required this.languageUk,
     required this.languageEn,
+    required this.settings,
+    required this.jpegOutput,
+    required this.gridSection,
+    required this.uiSection,
+    required this.save,
+    required this.paperSize,
+    required this.orientation,
+    required this.portrait,
+    required this.landscape,
+    required this.gridSizeLabel,
+    required this.showGrid,
+    required this.snapToGrid,
+    required this.primaryColor,
+    required this.pickColor,
+    required this.select,
   });
 
   // Назва фігури за інструментом.
@@ -270,6 +296,21 @@ class AppStrings {
     language: 'Мова',
     languageUk: 'Українська',
     languageEn: 'English',
+    settings: 'Налаштування',
+    jpegOutput: 'Вихідний файл JPEG',
+    gridSection: 'Сітка для привʼязування',
+    uiSection: 'Інтерфейс',
+    save: 'Зберегти',
+    paperSize: 'Розмір',
+    orientation: 'Орієнтація',
+    portrait: 'Портретна',
+    landscape: 'Альбомна',
+    gridSizeLabel: 'Розмір комірки',
+    showGrid: 'Показувати сітку',
+    snapToGrid: 'Привʼязувати до сітки',
+    primaryColor: 'Основний колір',
+    pickColor: 'Оберіть колір',
+    select: 'Вибрати',
   );
 
   // ===== English =====
@@ -376,6 +417,21 @@ class AppStrings {
     language: 'Language',
     languageUk: 'Українська',
     languageEn: 'English',
+    settings: 'Settings',
+    jpegOutput: 'JPEG Output',
+    gridSection: 'Snapping Grid',
+    uiSection: 'Interface',
+    save: 'Save',
+    paperSize: 'Paper size',
+    orientation: 'Orientation',
+    portrait: 'Portrait',
+    landscape: 'Landscape',
+    gridSizeLabel: 'Cell size',
+    showGrid: 'Show grid',
+    snapToGrid: 'Snap to grid',
+    primaryColor: 'Primary color',
+    pickColor: 'Pick a color',
+    select: 'Select',
   );
 
   static AppStrings of(String languageCode) {

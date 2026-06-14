@@ -12,13 +12,13 @@ extension PaperSizeExt on PaperSize {
   String get displayName {
     switch (this) {
       case PaperSize.a5:
-        return 'A5 (148×210 мм)';
+        return 'A5 (148×210 mm)';
       case PaperSize.a4:
-        return 'A4 (210×297 мм)';
+        return 'A4 (210×297 mm)';
       case PaperSize.a3:
-        return 'A3 (297×420 мм)';
+        return 'A3 (297×420 mm)';
       case PaperSize.a2:
-        return 'A2 (420×594 мм)';
+        return 'A2 (420×594 mm)';
     }
   }
 
@@ -37,10 +37,6 @@ extension PaperSizeExt on PaperSize {
   }
 }
 
-extension PaperOrientationExt on PaperOrientation {
-  String get displayName =>
-      this == PaperOrientation.portrait ? 'Портретна' : 'Альбомна';
-}
 
 class AppSettings {
   // Вихідне JPEG

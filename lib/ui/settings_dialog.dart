@@ -19,6 +19,10 @@ class SettingsDialog extends StatefulWidget {
 class _SettingsDialogState extends State<SettingsDialog> {
   late AppSettings settings;
 
+  // Strings driven by the language currently selected inside the dialog,
+  // so the UI preview updates in real-time when the user picks a language.
+  AppStrings get _str => AppStrings.of(settings.language);
+
   @override
   void initState() {
     super.initState();
@@ -27,45 +31,42 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final s = _str;
     return AlertDialog(
-      title: const Text('Налаштування'),
+      title: Text(s.settings),
       content: SingleChildScrollView(
         child: SizedBox(
           width: 500,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Розмір JPEG
-              _buildSectionTitle('Вихідний файл JPEG'),
+              _buildSectionTitle(s.jpegOutput),
               const SizedBox(height: 12),
-              _buildPaperSizeDropdown(),
+              _buildPaperSizeDropdown(s),
               const SizedBox(height: 12),
-              _buildPaperOrientationDropdown(),
+              _buildPaperOrientationDropdown(s),
               const Divider(height: 32),
-              // Сітка
-              _buildSectionTitle('Сітка для привʼязування'),
+              _buildSectionTitle(s.gridSection),
               const SizedBox(height: 12),
-              _buildGridSizeSlider(),
+              _buildGridSizeSlider(s),
               const SizedBox(height: 16),
-              _buildGridToggle(),
+              _buildGridToggle(s),
               const SizedBox(height: 12),
-              _buildSnapToGridToggle(),
+              _buildSnapToGridToggle(s),
               const Divider(height: 32),
-              // Камери
-              _buildSectionTitle('Камери'),
+              _buildSectionTitle(s.cameras),
               const SizedBox(height: 12),
-              _buildCameraNumberStyle(),
+              _buildCameraNumberStyle(s),
               const SizedBox(height: 16),
-              _buildCameraInfoDisplay(),
+              _buildCameraInfoDisplay(s),
               const Divider(height: 32),
-              // Інтерфейс
-              _buildSectionTitle(strings.language),
+              _buildSectionTitle(s.language),
               const SizedBox(height: 12),
-              _buildLanguagePicker(),
+              _buildLanguagePicker(s),
               const Divider(height: 32),
-              _buildSectionTitle('Інтерфейс'),
+              _buildSectionTitle(s.uiSection),
               const SizedBox(height: 12),
-              _buildColorPicker(),
+              _buildColorPicker(s),
             ],
           ),
         ),
@@ -73,14 +74,14 @@ class _SettingsDialogState extends State<SettingsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Скасувати'),
+          child: Text(s.cancel),
         ),
         ElevatedButton(
           onPressed: () {
             widget.onSave(settings);
             Navigator.pop(context);
           },
-          child: const Text('Зберегти'),
+          child: Text(s.save),
         ),
       ],
     );
@@ -100,11 +101,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildPaperSizeDropdown() {
+  Widget _buildPaperSizeDropdown(AppStrings s) {
     return DropdownButtonFormField<PaperSize>(
       initialValue: settings.paperSize,
       decoration: InputDecoration(
-        labelText: 'Розмір',
+        labelText: s.paperSize,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         isDense: true,
       ),
@@ -122,20 +123,24 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildPaperOrientationDropdown() {
+  Widget _buildPaperOrientationDropdown(AppStrings s) {
     return DropdownButtonFormField<PaperOrientation>(
       initialValue: settings.paperOrientation,
       decoration: InputDecoration(
-        labelText: 'Орієнтація',
+        labelText: s.orientation,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         isDense: true,
       ),
-      items: PaperOrientation.values.map((orientation) {
-        return DropdownMenuItem(
-          value: orientation,
-          child: Text(orientation.displayName),
-        );
-      }).toList(),
+      items: [
+        DropdownMenuItem(
+          value: PaperOrientation.portrait,
+          child: Text(s.portrait),
+        ),
+        DropdownMenuItem(
+          value: PaperOrientation.landscape,
+          child: Text(s.landscape),
+        ),
+      ],
       onChanged: (value) {
         if (value != null) {
           setState(() => settings.paperOrientation = value);
@@ -144,11 +149,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildGridSizeSlider() {
+  Widget _buildGridSizeSlider(AppStrings s) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Розмір комірки: ${settings.gridSize.toStringAsFixed(0)} px'),
+        Text('${s.gridSizeLabel}: ${settings.gridSize.toStringAsFixed(0)} px'),
         Slider(
           value: settings.gridSize,
           min: 5,
@@ -162,11 +167,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildGridToggle() {
+  Widget _buildGridToggle(AppStrings s) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text('Показувати сітку'),
+        Text(s.showGrid),
         Switch(
           value: settings.showGrid,
           onChanged: (value) {
@@ -177,17 +182,23 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildCameraNumberStyle() {
+  Widget _buildCameraNumberStyle(AppStrings s) {
     return DropdownButtonFormField<CameraNumberStyle>(
       initialValue: settings.cameraNumberStyle,
       decoration: InputDecoration(
-        labelText: 'Нумерація камер',
+        labelText: s.cameraNumberStyle,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         isDense: true,
       ),
-      items: const [
-        DropdownMenuItem(value: CameraNumberStyle.numeric, child: Text('1, 2, 3...')),
-        DropdownMenuItem(value: CameraNumberStyle.alphabetic, child: Text('A, B, C...')),
+      items: [
+        DropdownMenuItem(
+          value: CameraNumberStyle.numeric,
+          child: Text(s.cameraNumberNumeric),
+        ),
+        DropdownMenuItem(
+          value: CameraNumberStyle.alphabetic,
+          child: Text(s.cameraNumberAlphabetic),
+        ),
       ],
       onChanged: (v) {
         if (v != null) setState(() => settings.cameraNumberStyle = v);
@@ -195,17 +206,17 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildLanguagePicker() {
+  Widget _buildLanguagePicker(AppStrings s) {
     return DropdownButtonFormField<String>(
       initialValue: settings.language,
       decoration: InputDecoration(
-        labelText: strings.language,
+        labelText: s.language,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         isDense: true,
       ),
       items: [
-        DropdownMenuItem(value: 'uk', child: Text(strings.languageUk)),
-        DropdownMenuItem(value: 'en', child: Text(strings.languageEn)),
+        DropdownMenuItem(value: 'uk', child: Text(s.languageUk)),
+        DropdownMenuItem(value: 'en', child: Text(s.languageEn)),
       ],
       onChanged: (v) {
         if (v != null) setState(() => settings.language = v);
@@ -213,23 +224,23 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildCameraInfoDisplay() {
+  Widget _buildCameraInfoDisplay(AppStrings s) {
     final fields = [
-      (CameraInfoField.cameraModel, strings.cameraModel),
-      (CameraInfoField.shotTypes,   strings.shotType),
-      (CameraInfoField.lens,        strings.lens),
-      (CameraInfoField.viewfinder,  strings.viewfinder),
-      (CameraInfoField.headphones,  strings.headphones),
-      (CameraInfoField.tripod,      strings.tripod),
-      (CameraInfoField.wheels,      strings.wheels),
-      (CameraInfoField.podium,      strings.podium),
-      (CameraInfoField.description, strings.description),
+      (CameraInfoField.cameraModel, s.cameraModel),
+      (CameraInfoField.shotTypes,   s.shotType),
+      (CameraInfoField.lens,        s.lens),
+      (CameraInfoField.viewfinder,  s.viewfinder),
+      (CameraInfoField.headphones,  s.headphones),
+      (CameraInfoField.tripod,      s.tripod),
+      (CameraInfoField.wheels,      s.wheels),
+      (CameraInfoField.podium,      s.podium),
+      (CameraInfoField.description, s.description),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          strings.cameraInfoDisplay,
+          s.cameraInfoDisplay,
           style: const TextStyle(fontSize: 13, color: Colors.black87),
         ),
         const SizedBox(height: 4),
@@ -256,11 +267,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildSnapToGridToggle() {
+  Widget _buildSnapToGridToggle(AppStrings s) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text('Привʼязувати до сітки'),
+        Text(s.snapToGrid),
         Switch(
           value: settings.snapToGrid,
           onChanged: (value) {
@@ -271,17 +282,18 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildColorPicker() {
+  Widget _buildColorPicker(AppStrings s) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text('Основний колір'),
+        Text(s.primaryColor),
         GestureDetector(
           onTap: () async {
             final color = await showDialog<Color>(
               context: context,
               builder: (context) => _ColorPickerDialog(
                 initialColor: settings.primaryColor,
+                str: _str,
               ),
             );
             if (color != null) {
@@ -305,8 +317,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
 class _ColorPickerDialog extends StatefulWidget {
   final Color initialColor;
+  final AppStrings str;
 
-  const _ColorPickerDialog({required this.initialColor});
+  const _ColorPickerDialog({required this.initialColor, required this.str});
 
   @override
   State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
@@ -337,7 +350,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
     ];
 
     return AlertDialog(
-      title: const Text('Оберіть колір'),
+      title: Text(widget.str.pickColor),
       content: GridView.count(
         crossAxisCount: 5,
         mainAxisSpacing: 12,
@@ -364,11 +377,11 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Скасувати'),
+          child: Text(widget.str.cancel),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, selectedColor),
-          child: const Text('Вибрати'),
+          child: Text(widget.str.select),
         ),
       ],
     );
