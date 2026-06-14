@@ -388,7 +388,7 @@ class EditorController extends ChangeNotifier {
       [tl, br],
       band: LayerBand.actor,
       strokeColor: const Color(0xFF000000),
-      fillColor: const Color(0xFF43A047),
+      fillColor: const Color(0xFF455A64),
       lockAspect: true,
       actorData: ActorData(),
     );
@@ -399,9 +399,9 @@ class EditorController extends ChangeNotifier {
 
   void _addRig(RigType type, Offset canvasP) {
     final Size size = switch (type) {
-      RigType.jib   => const Size(60, 158),
-      RigType.dolly => const Size(80, 80),
-      RigType.rail  => const Size(60, 158),
+      RigType.jib   => const Size(150, 395),
+      RigType.dolly => const Size(150, 150),
+      RigType.rail  => const Size(150, 395),
     };
     final Color? fillColor = switch (type) {
       RigType.jib   => const Color(0xFFA7A9AC),
