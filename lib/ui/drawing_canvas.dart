@@ -112,6 +112,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                   selectionColor: AppColors.selection,
                   rotationHandleColor: AppColors.rotationHandle,
                   editingId: controller.editingTextItem?.id,
+                  gridSize: controller.settings.gridSize,
+                  showGrid: controller.settings.showGrid,
                 ),
                 size: Size.infinite,
               ),

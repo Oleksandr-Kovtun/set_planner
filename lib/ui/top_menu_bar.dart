@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../editor_controller.dart';
 import '../l10n/app_strings.dart';
+import 'settings_dialog.dart';
 
 class TopMenuBar extends StatelessWidget {
   final EditorController controller;
@@ -14,7 +15,20 @@ class TopMenuBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          Text(strings.appTitle, style: const TextStyle(color: Colors.white, fontSize: 16)),
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => _showSettings(context),
+              child: Text(
+                strings.appTitle,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(width: 16),
           ListenableBuilder(
             listenable: controller,
@@ -98,6 +112,18 @@ class TopMenuBar extends StatelessWidget {
         color: Colors.white,
         onPressed: () =>
             menuController.isOpen ? menuController.close() : menuController.open(),
+      ),
+    );
+  }
+
+  void _showSettings(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => SettingsDialog(
+        initialSettings: controller.settings,
+        onSave: (newSettings) {
+          controller.updateSettings(newSettings);
+        },
       ),
     );
   }

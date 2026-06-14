@@ -12,6 +12,8 @@ class DrawingPainter extends CustomPainter {
   final Color selectionColor;
   final Color rotationHandleColor;
   final int? editingId;
+  final double gridSize;
+  final bool showGrid;
 
   DrawingPainter(
     this.items, {
@@ -23,6 +25,8 @@ class DrawingPainter extends CustomPainter {
     this.selectionColor = Colors.blue,
     this.rotationHandleColor = Colors.green,
     this.editingId,
+    this.gridSize = 20.0,
+    this.showGrid = true,
   });
 
   @override
@@ -30,6 +34,9 @@ class DrawingPainter extends CustomPainter {
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
     canvas.scale(scale);
+    if (showGrid) {
+      _drawGrid(canvas, size);
+    }
     for (final item in items) {
       if (item.id == editingId) continue; // редагується на канвасі — малює overlay
       _drawItem(canvas, item);
@@ -38,6 +45,32 @@ class DrawingPainter extends CustomPainter {
     _drawSelection(canvas);
     _drawMarquee(canvas);
     canvas.restore();
+  }
+
+  void _drawGrid(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.grey.withValues(alpha: 0.2)
+      ..strokeWidth = 1 / scale;
+
+    final scaledGridSize = gridSize;
+    
+    // Розраховуємо видиму область
+    final visibleLeft = -offset.dx / scale;
+    final visibleTop = -offset.dy / scale;
+    final visibleRight = visibleLeft + size.width / scale;
+    final visibleBottom = visibleTop + size.height / scale;
+
+    // Малюємо вертикальні лінії
+    final startX = (visibleLeft / scaledGridSize).floor() * scaledGridSize;
+    for (double x = startX; x <= visibleRight; x += scaledGridSize) {
+      canvas.drawLine(Offset(x, visibleTop), Offset(x, visibleBottom), paint);
+    }
+
+    // Малюємо горизонтальні лінії
+    final startY = (visibleTop / scaledGridSize).floor() * scaledGridSize;
+    for (double y = startY; y <= visibleBottom; y += scaledGridSize) {
+      canvas.drawLine(Offset(visibleLeft, y), Offset(visibleRight, y), paint);
+    }
   }
 
   void _withRotation(Canvas canvas, DrawnItem item, VoidCallback draw) {

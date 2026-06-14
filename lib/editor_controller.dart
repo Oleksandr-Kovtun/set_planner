@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'models.dart';
+import 'models/settings.dart';
 
 enum _Interaction { none, drawing, moving, resizing, rotating, marquee }
 
@@ -50,6 +51,9 @@ class EditorController extends ChangeNotifier {
   double get scale => _scale;
   Offset _offset = Offset.zero;
   Offset get offset => _offset;
+
+  AppSettings _settings = AppSettings();
+  AppSettings get settings => _settings;
 
   _Interaction _interaction = _Interaction.none;
   int _resizeHandle = 0;
@@ -306,6 +310,20 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateSettings(AppSettings newSettings) {
+    _settings = newSettings;
+    notifyListeners();
+  }
+
+  Offset _snapToGrid(Offset p) {
+    if (!_settings.snapToGrid) return p;
+    final gridSize = _settings.gridSize;
+    return Offset(
+      (p.dx / gridSize).round() * gridSize,
+      (p.dy / gridSize).round() * gridSize,
+    );
+  }
+
   Offset _screenToCanvas(Offset screen) => (screen - _offset) / _scale;
   double get _hitRadius => handleRadius / _scale;
   Offset _toLocal(DrawnItem item, Offset p) =>
@@ -410,6 +428,7 @@ class EditorController extends ChangeNotifier {
     }
 
     final wasDrawing = _interaction == _Interaction.drawing;
+    final wasMoving = _interaction == _Interaction.moving;
     final item = _activeItem;
     if (wasDrawing && item != null) {
       bool removed = false;
@@ -424,6 +443,16 @@ class EditorController extends ChangeNotifier {
         final idx = _items.indexOf(item);
         if (idx != -1) _setSelection({idx});
         _currentTool = Tool.select; // після малювання — у режим вибору
+      }
+      notifyListeners();
+    } else if (wasMoving && _settings.snapToGrid) {
+      // Привязуємо всі переміщені елементи до сітки
+      for (final i in _selection) {
+        if (!_items[i].locked) {
+          for (int k = 0; k < _items[i].points.length; k++) {
+            _items[i].points[k] = _snapToGrid(_items[i].points[k]);
+          }
+        }
       }
       notifyListeners();
     }
@@ -488,9 +517,10 @@ class EditorController extends ChangeNotifier {
 
   void _startDrawing(Offset p) {
     _pushUndo();
+    final snappedP = _snapToGrid(p);
     final item = (_currentTool == Tool.pen)
-        ? DrawnItem(Tool.pen, [p])
-        : DrawnItem(_currentTool, [p, p]);
+        ? DrawnItem(Tool.pen, [snappedP])
+        : DrawnItem(_currentTool, [snappedP, snappedP]);
     _insertByBand(item);
     _activeItem = item;
     _interaction = _Interaction.drawing;
@@ -500,10 +530,11 @@ class EditorController extends ChangeNotifier {
   void _extendDrawing(Offset p) {
     final item = _activeItem;
     if (item == null) return;
+    final snappedP = _snapToGrid(p);
     if (item.tool == Tool.pen) {
-      item.points.add(p);
+      item.points.add(snappedP);
     } else {
-      item.points[1] = p;
+      item.points[1] = snappedP;
       item.applyAspectLock();
     }
     notifyListeners();
