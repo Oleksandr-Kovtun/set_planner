@@ -406,8 +406,15 @@ class DrawingPainter extends CustomPainter {
       canvas.drawRect(selBox, box);
       if (item.locked) return; // заблоковано — без ручок повороту/розміру
 
-      final handleBase = Offset(center.dx, selBox.top);
-      final rotPoint = Offset(center.dx, selBox.top - 24 / scale);
+      final Offset handleBase;
+      final Offset rotPoint;
+      if (item.tool == Tool.camera) {
+        handleBase = Offset(selBox.right, center.dy);
+        rotPoint = Offset(selBox.right + 24 / scale, center.dy);
+      } else {
+        handleBase = Offset(center.dx, selBox.top);
+        rotPoint = Offset(center.dx, selBox.top - 24 / scale);
+      }
       canvas.drawLine(handleBase, rotPoint, box);
       canvas.drawCircle(rotPoint, 6 / scale, Paint()..color = rotationHandleColor);
 

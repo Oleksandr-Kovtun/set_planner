@@ -120,6 +120,17 @@ class EditorController extends ChangeNotifier {
     return n;
   }
 
+  List<DrawnItem> get cameras => _items.where((e) => e.tool == Tool.camera).toList();
+
+  String cameraLabel(int num) => _cameraLabel(num);
+
+  void selectCamera(DrawnItem cam) {
+    final idx = _items.indexOf(cam);
+    if (idx == -1) return;
+    _setSelection({idx});
+    notifyListeners();
+  }
+
   String _cameraLabel(int num) {
     if (_settings.cameraNumberStyle == CameraNumberStyle.alphabetic) {
       if (num >= 1 && num <= 26) {
@@ -708,8 +719,13 @@ class EditorController extends ChangeNotifier {
 
   Offset _rotationHandlePos(DrawnItem item) {
     final center = item.bounds.center;
-    final local = Offset(center.dx,
-        item.bounds.inflate(selectionPadding).top - rotationHandleOffset / _scale);
+    final box = item.bounds.inflate(selectionPadding);
+    final Offset local;
+    if (item.tool == Tool.camera) {
+      local = Offset(box.right + rotationHandleOffset / _scale, center.dy);
+    } else {
+      local = Offset(center.dx, box.top - rotationHandleOffset / _scale);
+    }
     return rotateAround(local, center, item.rotation);
   }
 

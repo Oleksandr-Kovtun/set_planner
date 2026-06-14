@@ -37,6 +37,7 @@ class AppStrings {
   final String yes;
   final String cameraInfoDisplay;
   final String allowResize;
+  final String noCameras;
   final String language, languageUk, languageEn;
 
   const AppStrings({
@@ -138,6 +139,7 @@ class AppStrings {
     required this.yes,
     required this.cameraInfoDisplay,
     required this.allowResize,
+    required this.noCameras,
     required this.language,
     required this.languageUk,
     required this.languageEn,
@@ -264,6 +266,7 @@ class AppStrings {
     yes: 'Так',
     cameraInfoDisplay: 'Відображення властивостей камери',
     allowResize: 'Дозволити зміну розміру',
+    noCameras: 'Камер ще немає',
     language: 'Мова',
     languageUk: 'Українська',
     languageEn: 'English',
@@ -369,6 +372,7 @@ class AppStrings {
     yes: 'Yes',
     cameraInfoDisplay: 'Camera info on canvas',
     allowResize: 'Allow resize',
+    noCameras: 'No cameras yet',
     language: 'Language',
     languageUk: 'Українська',
     languageEn: 'English',
