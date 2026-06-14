@@ -44,6 +44,8 @@ class ToolBar extends StatelessWidget {
             _divider(),
             _toolButton(Tool.camera, Icons.videocam, strings.cameras),
             _divider(),
+            _rigsMenu(),
+            _divider(),
             _toolButton(Tool.actor, Icons.person, strings.actors),
             _divider(),
             _toolButton(Tool.text, Icons.title, strings.textTool),
@@ -94,6 +96,49 @@ class ToolBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, color: color),
+          Icon(Icons.arrow_drop_up, color: color),
+        ]),
+      ),
+    );
+  }
+
+  Widget _rigsMenu() {
+    final active = controller.currentTool == Tool.rig;
+    final color = active ? AppColors.accent : AppColors.icon;
+    return PopupMenuButton<RigType>(
+      color: AppColors.panel,
+      tooltip: strings.toolRigs,
+      onSelected: controller.selectRigTool,
+      itemBuilder: (context) => [
+        PopupMenuItem<RigType>(
+          value: RigType.jib,
+          child: Row(children: [
+            Icon(Icons.movie_filter, size: 20, color: active && controller.rigType == RigType.jib ? AppColors.accent : null),
+            const SizedBox(width: 8),
+            Text(strings.rigJib),
+          ]),
+        ),
+        PopupMenuItem<RigType>(
+          value: RigType.dolly,
+          child: Row(children: [
+            Icon(Icons.shopping_cart_outlined, size: 20, color: active && controller.rigType == RigType.dolly ? AppColors.accent : null),
+            const SizedBox(width: 8),
+            Text(strings.rigDolly),
+          ]),
+        ),
+        PopupMenuItem<RigType>(
+          value: RigType.rail,
+          child: Row(children: [
+            Icon(Icons.linear_scale, size: 20, color: active && controller.rigType == RigType.rail ? AppColors.accent : null),
+            const SizedBox(width: 8),
+            Text(strings.rigRail),
+          ]),
+        ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.movie_filter, color: color),
           Icon(Icons.arrow_drop_up, color: color),
         ]),
       ),

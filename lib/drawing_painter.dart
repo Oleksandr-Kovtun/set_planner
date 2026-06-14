@@ -229,6 +229,8 @@ class DrawingPainter extends CustomPainter {
           _drawCamera(canvas, item, stroke, fill);
         case Tool.actor:
           _drawActor(canvas, item, stroke);
+        case Tool.rig:
+          _drawRig(canvas, item, stroke, fill);
       }
     });
     // Info table is drawn after rotation so it stays horizontal on screen.
@@ -292,6 +294,90 @@ class DrawingPainter extends CustomPainter {
     final headR = 0.2044 * math.min(W, H);
     canvas.drawCircle(headCenter, headR, bodyFill);
     canvas.drawCircle(headCenter, headR, stroke);
+  }
+
+  void _drawRig(Canvas canvas, DrawnItem item, Paint stroke, Paint? fill) {
+    final pts = item.points;
+    if (pts.length < 2 || item.rigData == null) return;
+    final r = Rect.fromPoints(pts[0], pts[1]);
+    final W = r.width, H = r.height;
+    final l = r.left, t = r.top;
+    switch (item.rigData!.type) {
+      case RigType.jib:   _drawJib(canvas, l, t, W, H, stroke, fill);
+      case RigType.dolly: _drawDolly(canvas, l, t, W, H, stroke, fill);
+      case RigType.rail:  _drawRail(canvas, l, t, W, H, stroke);
+    }
+  }
+
+  // Jib crane — SVG viewBox 304×800, all coords normalised by W/H.
+  // Rounded-rect legs: rx = 11.48/304 × W ≈ 0.0378 × W.
+  void _drawJib(Canvas canvas, double l, double t, double W, double H, Paint stroke, Paint? fill) {
+    final rr = Radius.circular(0.0378 * W);
+
+    void filled(Rect rect, {bool rounded = false}) {
+      if (fill != null) {
+        if (rounded) canvas.drawRRect(RRect.fromRectAndRadius(rect, rr), fill);
+        else canvas.drawRect(rect, fill);
+      }
+      if (rounded) canvas.drawRRect(RRect.fromRectAndRadius(rect, rr), stroke);
+      else canvas.drawRect(rect, stroke);
+    }
+
+    Rect box(double x, double y, double w, double h) =>
+        Rect.fromLTWH(l + x * W, t + y * H, w * W, h * H);
+
+    // 4 legs (rounded)
+    filled(box(0.1217, 0.6256, 0.0987, 0.1000), rounded: true);
+    filled(box(0.1217, 0.8131, 0.0987, 0.1000), rounded: true);
+    filled(box(0.7796, 0.6256, 0.0987, 0.1000), rounded: true);
+    filled(box(0.7796, 0.8131, 0.0987, 0.1000), rounded: true);
+    // Body block
+    filled(box(0.2204, 0.6631, 0.5592, 0.2125));
+    // Lower column
+    filled(box(0.4425, 0.3975, 0.1151, 0.2500));
+    // Upper boom
+    filled(box(0.4588, 0.0163, 0.0822, 0.3813));
+    // Base column (widest, drawn last)
+    filled(box(0.4096, 0.6475, 0.1809, 0.3188));
+  }
+
+  // Dolly cart — SVG viewBox 300×300, rounded-rect legs: rx = 11.48/300 × W ≈ 0.0383 × W.
+  void _drawDolly(Canvas canvas, double l, double t, double W, double H, Paint stroke, Paint? fill) {
+    final rr = Radius.circular(0.0383 * W);
+
+    void filled(Rect rect, {bool rounded = false}) {
+      if (fill != null) {
+        if (rounded) canvas.drawRRect(RRect.fromRectAndRadius(rect, rr), fill);
+        else canvas.drawRect(rect, fill);
+      }
+      if (rounded) canvas.drawRRect(RRect.fromRectAndRadius(rect, rr), stroke);
+      else canvas.drawRect(rect, stroke);
+    }
+
+    Rect box(double x, double y, double w, double h) =>
+        Rect.fromLTWH(l + x * W, t + y * H, w * W, h * H);
+
+    // 4 wheel posts (rounded)
+    filled(box(0.1167, 0.1083, 0.1000, 0.2667), rounded: true);
+    filled(box(0.1167, 0.6083, 0.1000, 0.2667), rounded: true);
+    filled(box(0.7833, 0.1083, 0.1000, 0.2667), rounded: true);
+    filled(box(0.7833, 0.6083, 0.1000, 0.2667), rounded: true);
+    // Body platform
+    filled(box(0.2167, 0.2083, 0.5667, 0.5667));
+  }
+
+  // Camera rails — SVG viewBox 304×800, stroke only (fill ignored).
+  void _drawRail(Canvas canvas, double l, double t, double W, double H, Paint stroke) {
+    // Left and right rails
+    canvas.drawLine(Offset(l + 0.2204 * W, t + 0.0319 * H), Offset(l + 0.2204 * W, t + 0.9631 * H), stroke);
+    canvas.drawLine(Offset(l + 0.7796 * W, t + 0.0319 * H), Offset(l + 0.7796 * W, t + 0.9631 * H), stroke);
+    // Cross-ties (14 total)
+    for (final yf in const [
+      0.0475, 0.1225, 0.1975, 0.2725, 0.3475, 0.4225,
+      0.4975, 0.5725, 0.6475, 0.7225, 0.7975, 0.8725, 0.9475,
+    ]) {
+      canvas.drawLine(Offset(l + 0.2204 * W, t + yf * H), Offset(l + 0.7796 * W, t + yf * H), stroke);
+    }
   }
 
   void _drawCameraInfoTable(Canvas canvas, DrawnItem item) {

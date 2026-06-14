@@ -76,6 +76,14 @@ class EditorController extends ChangeNotifier {
   // Поточний розмір актора — змінювати тут для зміни дефолтного розміру
   Size _actorSize = const Size(80, 80);
 
+  RigType _rigType = RigType.jib;
+  RigType get rigType => _rigType;
+
+  void selectRigTool(RigType type) {
+    _rigType = type;
+    selectTool(Tool.rig);
+  }
+
   bool get isPolylineBuilding => _currentTool == Tool.polyline && _activeItem != null;
   Offset? get polylineCursorPos => _polylineCursorPos;
   DrawnItem? get activePolyline => isPolylineBuilding ? _activeItem : null;
@@ -159,6 +167,30 @@ class EditorController extends ChangeNotifier {
     final it = selectedItem;
     if (it?.actorData == null || it!.locked) return;
     it.actorData!.props = v;
+    notifyListeners();
+  }
+
+  void setRigWidth(double w) {
+    final it = selectedItem;
+    if (it?.rigData == null || it!.locked || w <= 0) return;
+    _pushUndo();
+    final ratio = it.targetAspectRatio;
+    final h = ratio > 0 ? w / ratio : w;
+    final center = it.bounds.center;
+    it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
+    it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
+    notifyListeners();
+  }
+
+  void setRigHeight(double h) {
+    final it = selectedItem;
+    if (it?.rigData == null || it!.locked || h <= 0) return;
+    _pushUndo();
+    final ratio = it.targetAspectRatio;
+    final w = ratio > 0 ? h * ratio : h;
+    final center = it.bounds.center;
+    it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
+    it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
     notifyListeners();
   }
 
@@ -362,6 +394,35 @@ class EditorController extends ChangeNotifier {
     );
     _insertByBand(actor);
     _setSelection({_items.indexOf(actor)});
+    notifyListeners();
+  }
+
+  void _addRig(RigType type, Offset canvasP) {
+    final Size size = switch (type) {
+      RigType.jib   => const Size(60, 158),
+      RigType.dolly => const Size(80, 80),
+      RigType.rail  => const Size(60, 158),
+    };
+    final Color? fillColor = switch (type) {
+      RigType.jib   => const Color(0xFFA7A9AC),
+      RigType.dolly => const Color(0xFFA7A9AC),
+      RigType.rail  => null,
+    };
+    final snapped = _snapToGrid(canvasP);
+    final tl = Offset(snapped.dx - size.width / 2, snapped.dy - size.height / 2);
+    final br = Offset(snapped.dx + size.width / 2, snapped.dy + size.height / 2);
+    _pushUndo();
+    final rig = DrawnItem(
+      Tool.rig,
+      [tl, br],
+      band: LayerBand.base,
+      strokeColor: const Color(0xFF000000),
+      fillColor: fillColor,
+      lockAspect: true,
+      rigData: RigData(type: type),
+    );
+    _insertByBand(rig);
+    _setSelection({_items.indexOf(rig)});
     notifyListeners();
   }
 
@@ -816,6 +877,10 @@ class EditorController extends ChangeNotifier {
       _addActor(_screenToCanvas(screenP));
       return;
     }
+    if (_currentTool == Tool.rig) {
+      _addRig(_rigType, _screenToCanvas(screenP));
+      return;
+    }
     if (_currentTool == Tool.polyline) {
       _handlePolylineTap(_screenToCanvas(screenP));
       return;
@@ -867,6 +932,8 @@ class EditorController extends ChangeNotifier {
       }
     } else if (_currentTool == Tool.actor) {
       // Actor placement is on tap; pans handled by select.
+    } else if (_currentTool == Tool.rig) {
+      // Rig placement is on tap; pans handled by select.
     } else if (_currentTool == Tool.polyline) {
       // polyline points are added on tap (onTap), not on pan start
     } else {

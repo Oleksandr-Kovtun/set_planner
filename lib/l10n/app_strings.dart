@@ -25,6 +25,8 @@ class AppStrings {
   final String locked, lockedHint;
   final String convertToCurve;
   final String arrowHeadStart, arrowHeadEnd;
+  // рейки / rig equipment
+  final String toolRigs, rigJib, rigDolly, rigRail, rigWidth, rigHeight;
   // актори
   final String toolActor, actorName, actorProps, noActors;
   // камери
@@ -123,6 +125,12 @@ class AppStrings {
     required this.arrowHeadStart,
     required this.arrowHeadEnd,
     required this.opacity,
+    required this.toolRigs,
+    required this.rigJib,
+    required this.rigDolly,
+    required this.rigRail,
+    required this.rigWidth,
+    required this.rigHeight,
     required this.toolActor,
     required this.actorName,
     required this.actorProps,
@@ -196,6 +204,15 @@ class AppStrings {
       case Tool.image: return imageTool;
       case Tool.camera: return toolCamera;
       case Tool.actor: return toolActor;
+      case Tool.rig: return toolRigs;
+    }
+  }
+
+  String rigLabel(RigType type) {
+    switch (type) {
+      case RigType.jib: return rigJib;
+      case RigType.dolly: return rigDolly;
+      case RigType.rail: return rigRail;
     }
   }
 
@@ -270,6 +287,12 @@ class AppStrings {
     convertToCurve: 'Спростити криву',
     arrowHeadStart: 'Вістря на початку',
     arrowHeadEnd: 'Вістря в кінці',
+    toolRigs: 'Рейки',
+    rigJib: 'Кран JIB',
+    rigDolly: 'Візок Dolly',
+    rigRail: 'Рейки',
+    rigWidth: 'Ширина',
+    rigHeight: 'Висота',
     toolActor: 'Актор',
     actorName: 'Ім\'я',
     actorProps: 'Реквізит',
@@ -395,6 +418,12 @@ class AppStrings {
     convertToCurve: 'Simplify curve',
     arrowHeadStart: 'Head at start',
     arrowHeadEnd: 'Head at end',
+    toolRigs: 'Rigs',
+    rigJib: 'JIB Crane',
+    rigDolly: 'Dolly',
+    rigRail: 'Rails',
+    rigWidth: 'Width',
+    rigHeight: 'Height',
     toolActor: 'Actor',
     actorName: 'Name',
     actorProps: 'Props',

@@ -106,6 +106,11 @@ class PropertiesPanel extends StatelessWidget {
           ? _lockedPanel(strings.toolActor)
           : _ActorPanel(controller: controller);
     }
+    if (item.tool == Tool.rig) {
+      return item.locked
+          ? _lockedPanel(strings.rigLabel(item.rigData!.type))
+          : _RigPanel(controller: controller);
+    }
     if (item.tool == Tool.camera) {
       return item.locked
           ? _lockedPanel(strings.toolCamera)
@@ -664,6 +669,162 @@ class _ActorPanel extends StatelessWidget {
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---- Панель властивостей ригу ----
+class _RigPanel extends StatelessWidget {
+  final EditorController controller;
+  const _RigPanel({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final item = controller.selectedItem!;
+    final rig = item.rigData!;
+    final bounds = item.bounds;
+    final w = bounds.width;
+    final h = bounds.height;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${strings.properties}: ${strings.rigLabel(rig.type)}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 12),
+
+          Text(strings.lineColor),
+          const SizedBox(height: 4),
+          _ColorRow(
+            selected: item.strokeColor,
+            onPick: (c) => controller.setStrokeColor(c!),
+          ),
+          const SizedBox(height: 12),
+
+          Text(strings.fillColor),
+          const SizedBox(height: 4),
+          _ColorRow(
+            selected: item.fillColor,
+            onPick: controller.setFillColor,
+            includeNone: true,
+          ),
+          const SizedBox(height: 12),
+
+          Text('${strings.rigWidth}:'),
+          const SizedBox(height: 4),
+          _RigSizeField(
+            value: w,
+            onSubmit: controller.setRigWidth,
+          ),
+          const SizedBox(height: 12),
+
+          Text('${strings.rigHeight}:'),
+          const SizedBox(height: 4),
+          _RigSizeField(
+            value: h,
+            onSubmit: controller.setRigHeight,
+          ),
+
+          const Divider(height: 24),
+          Text(strings.rotationAngle),
+          const SizedBox(height: 4),
+          _RotationField(
+            degrees: item.rotation * 180 / math.pi,
+            onSubmit: controller.setRotationDegrees,
+          ),
+          const SizedBox(height: 12),
+
+          Row(children: [
+            Checkbox(
+              value: item.locked,
+              onChanged: (v) => controller.setLocked(v ?? false),
+            ),
+            Expanded(child: Text(strings.locked)),
+          ]),
+          const SizedBox(height: 12),
+
+          const Divider(height: 24),
+          FilledButton.icon(
+            onPressed: controller.deleteSelected,
+            icon: const Icon(Icons.delete_outline),
+            label: Text(strings.delete),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---- Числове поле розміру ригу (px) ----
+class _RigSizeField extends StatefulWidget {
+  final double value;
+  final ValueChanged<double> onSubmit;
+  const _RigSizeField({required this.value, required this.onSubmit});
+
+  @override
+  State<_RigSizeField> createState() => _RigSizeFieldState();
+}
+
+class _RigSizeFieldState extends State<_RigSizeField> {
+  late final TextEditingController _ctrl;
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: _format(widget.value));
+  }
+
+  @override
+  void didUpdateWidget(covariant _RigSizeField old) {
+    super.didUpdateWidget(old);
+    if (!_focus.hasFocus && widget.value != old.value) {
+      _ctrl.text = _format(widget.value);
+    }
+  }
+
+  String _format(double v) => v.round().toString();
+
+  void _apply() {
+    final parsed = double.tryParse(_ctrl.text.replaceAll(',', '.'));
+    if (parsed != null && parsed > 0) {
+      widget.onSubmit(parsed);
+    } else {
+      _ctrl.text = _format(widget.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 96,
+      child: TextField(
+        controller: _ctrl,
+        focusNode: _focus,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textInputAction: TextInputAction.done,
+        decoration: const InputDecoration(
+          isDense: true,
+          border: OutlineInputBorder(),
+          suffixText: 'px',
+        ),
+        onSubmitted: (_) => _apply(),
+        onTapOutside: (_) {
+          if (_focus.hasFocus) {
+            _focus.unfocus();
+            _apply();
+          }
+        },
       ),
     );
   }

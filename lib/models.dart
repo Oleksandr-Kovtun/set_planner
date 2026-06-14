@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
-enum Tool { select, pen, polyline, line, rectangle, ellipse, triangle, arrow, star, svg, svgPath, lasso, text, image, camera, actor }
+enum Tool { select, pen, polyline, line, rectangle, ellipse, triangle, arrow, star, svg, svgPath, lasso, text, image, camera, actor, rig }
 
 // ---- Actor data ----
 class ActorData {
@@ -78,6 +78,14 @@ class CameraData {
 // Групи рівнів (z-порядок): base завжди внизу, далі actor, найвище camera.
 enum LayerBand { base, actor, camera }
 
+enum RigType { jib, dolly, rail }
+
+class RigData {
+  RigType type;
+  RigData({required this.type});
+  RigData copy() => RigData(type: type);
+}
+
 const List<Tool> shapeTools = [
   Tool.rectangle, 
   Tool.ellipse, 
@@ -94,7 +102,8 @@ bool toolSupportsFill(Tool t) =>
     t == Tool.svg ||
     t == Tool.svgPath ||
     t == Tool.camera ||
-    t == Tool.actor;
+    t == Tool.actor ||
+    t == Tool.rig;
 
 bool toolSupportsAspectLock(Tool t) =>
     t == Tool.rectangle ||
@@ -105,7 +114,8 @@ bool toolSupportsAspectLock(Tool t) =>
     t == Tool.svgPath ||
     t == Tool.image ||
     t == Tool.camera ||
-    t == Tool.actor;
+    t == Tool.actor ||
+    t == Tool.rig;
 
 // "Коробкові" фігури — задаються прямокутником, мають 8 ручок розміру.
 bool toolIsBox(Tool t) =>
@@ -117,7 +127,8 @@ bool toolIsBox(Tool t) =>
     t == Tool.svgPath ||
     t == Tool.image ||
     t == Tool.camera ||
-    t == Tool.actor;
+    t == Tool.actor ||
+    t == Tool.rig;
 
 // Відступ рамки виділення (і позицій ручок) від самої фігури.
 const double selectionPadding = 6.0;
@@ -167,6 +178,7 @@ class DrawnItem {
   bool arrowHeadEnd;   // вістря в кінці
   CameraData? cameraData; // дані камери (тільки для Tool.camera)
   ActorData? actorData;   // дані актора (тільки для Tool.actor)
+  RigData? rigData;       // дані ригу (тільки для Tool.rig)
   bool visible; // false = не малювати (напр., прихований номер камери)
 
   DrawnItem(
@@ -199,6 +211,7 @@ class DrawnItem {
     this.arrowHeadEnd = false,
     this.cameraData,
     this.actorData,
+    this.rigData,
     this.visible = true,
   }) : id = id ?? (++_idSeq);
 
@@ -232,6 +245,7 @@ class DrawnItem {
         arrowHeadEnd: arrowHeadEnd,
         cameraData: cameraData?.copy(),
         actorData: actorData?.copy(),
+        rigData: rigData?.copy(),
         visible: visible,
       );
 
@@ -265,7 +279,6 @@ class DrawnItem {
   }
 
   // Бажане співвідношення ширина/висота для "зберігати пропорції".
-  // Для SVG-фігури — її оригінальне співвідношення; для решти — 1:1 (квадрат).
   double get targetAspectRatio {
     if (tool == Tool.svgPath && svgPathBounds != null) {
       final nb = svgPathBounds!;
@@ -274,6 +287,13 @@ class DrawnItem {
     if (tool == Tool.image && image != null) {
       final w = image!.width.toDouble(), h = image!.height.toDouble();
       if (w > 0 && h > 0) return w / h;
+    }
+    if (tool == Tool.rig && rigData != null) {
+      return switch (rigData!.type) {
+        RigType.jib  => 304.0 / 800.0,
+        RigType.dolly => 1.0,
+        RigType.rail => 304.0 / 800.0,
+      };
     }
     return 1.0;
   }
@@ -317,5 +337,6 @@ IconData toolIcon(Tool t) {
     case Tool.image: return Icons.photo;
     case Tool.camera: return Icons.videocam;
     case Tool.actor: return Icons.person;
+    case Tool.rig: return Icons.movie_filter;
   }
 }
