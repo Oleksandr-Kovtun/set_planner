@@ -218,7 +218,7 @@ class PropertiesPanel extends StatelessWidget {
             const SizedBox(height: 12),
           ],
 
-          if (item.tool == Tool.pen && !item.smoothed) ...[
+          if ((item.tool == Tool.pen || item.tool == Tool.polyline) && !item.smoothed) ...[
             FilledButton.icon(
               onPressed: controller.convertSelectedToCurve,
               icon: const Icon(Icons.gesture),

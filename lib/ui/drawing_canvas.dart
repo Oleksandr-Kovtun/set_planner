@@ -85,6 +85,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
       onPointerSignal: _onPointerSignal,
       onPointerDown: _onPointerDown,
       onPointerMove: _onPointerMove,
+      onPointerHover: (event) => controller.updatePolylineCursor(event.localPosition),
       onPointerUp: (_) => _endMiddlePan(),
       onPointerCancel: (_) => _endMiddlePan(),
       child: ClipRect(
@@ -114,6 +115,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                   editingId: controller.editingTextItem?.id,
                   gridSize: controller.settings.gridSize,
                   showGrid: controller.settings.showGrid,
+                  activePolyline: controller.activePolyline,
+                  polylineCursorPos: controller.polylineCursorPos,
                 ),
                 size: Size.infinite,
               ),

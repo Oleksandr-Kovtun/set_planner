@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
-enum Tool { select, pen, line, rectangle, ellipse, triangle, arrow, star, svg, svgPath, lasso, text, image }
+enum Tool { select, pen, polyline, line, rectangle, ellipse, triangle, arrow, star, svg, svgPath, lasso, text, image }
 
 // Групи рівнів (z-порядок): base завжди внизу, далі actor, найвище camera.
 enum LayerBand { base, actor, camera }
@@ -217,6 +217,7 @@ IconData toolIcon(Tool t) {
   switch (t) {
     case Tool.select: return Icons.near_me;
     case Tool.pen: return Icons.gesture;
+    case Tool.polyline: return Icons.polyline;
     case Tool.line: return Icons.horizontal_rule;
     case Tool.rectangle: return Icons.crop_square;
     case Tool.ellipse: return Icons.circle_outlined;

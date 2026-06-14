@@ -38,6 +38,7 @@ class ToolBar extends StatelessWidget {
             ),
             _divider(),
             _toolButton(Tool.pen, Icons.gesture, strings.freeDraw),
+            _toolButton(Tool.polyline, Icons.polyline, strings.toolPolyline),
             _divider(),
             _shapesMenu(),
             _divider(),

@@ -14,7 +14,7 @@ class AppStrings {
   final String nothingSelected, properties, lineThickness, lineColor,
       fillColor, keepAspect, delete, rotationAngle, layer, toFront, forward, backward, toBack;
   // назви інструментів/фігур
-  final String toolSelect, toolPen, toolLine, toolRectangle, toolEllipse,
+  final String toolSelect, toolPen, toolPolyline, toolLine, toolRectangle, toolEllipse,
       toolTriangle, toolArrow, toolStar;
   // текстові властивості
   final String textTool, textContent, fontSizeLabel, bold, italic,
@@ -57,6 +57,7 @@ class AppStrings {
     required this.delete,
     required this.toolSelect,
     required this.toolPen,
+    required this.toolPolyline,
     required this.toolLine,
     required this.toolRectangle,
     required this.toolEllipse,
@@ -102,6 +103,7 @@ class AppStrings {
     switch (t) {
       case Tool.select: return toolSelect;
       case Tool.pen: return toolPen;
+      case Tool.polyline: return toolPolyline;
       case Tool.line: return toolLine;
       case Tool.rectangle: return toolRectangle;
       case Tool.ellipse: return toolEllipse;
@@ -156,6 +158,7 @@ class AppStrings {
     delete: 'Видалити',
     toolSelect: 'Вибір',
     toolPen: 'Лінія від руки',
+    toolPolyline: 'Ламана лінія',
     toolLine: 'Лінія',
     toolRectangle: 'Прямокутник',
     toolEllipse: 'Коло / Еліпс',
@@ -228,6 +231,7 @@ class AppStrings {
     delete: 'Delete',
     toolSelect: 'Select',
     toolPen: 'Freehand line',
+    toolPolyline: 'Polyline',
     toolLine: 'Line',
     toolRectangle: 'Rectangle',
     toolEllipse: 'Circle / Ellipse',

@@ -62,7 +62,12 @@ class EditorController extends ChangeNotifier {
   double? _groupPrevAngle;
   bool _editSnapshotTaken = false;
   DrawnItem? _activeItem;
+  Offset? _polylineCursorPos;
   int _nextGroupId = 1;
+
+  bool get isPolylineBuilding => _currentTool == Tool.polyline && _activeItem != null;
+  Offset? get polylineCursorPos => _polylineCursorPos;
+  DrawnItem? get activePolyline => isPolylineBuilding ? _activeItem : null;
 
   final List<List<DrawnItem>> _undoStack = [];
   final List<List<DrawnItem>> _redoStack = [];
@@ -78,6 +83,18 @@ class EditorController extends ChangeNotifier {
   void beginPropertyEdit() => _pushUndo();
 
   void selectTool(Tool tool) {
+    if (isPolylineBuilding) {
+      final item = _activeItem!;
+      if (item.points.length >= 2) {
+        final idx = _items.indexOf(item);
+        if (idx != -1) _setSelection({idx});
+      } else {
+        _items.remove(item);
+        if (_undoStack.isNotEmpty) _undoStack.removeLast();
+      }
+      _activeItem = null;
+      _polylineCursorPos = null;
+    }
     _currentTool = tool;
     if (tool != Tool.select && tool != Tool.lasso) _selection.clear();
     notifyListeners();
@@ -352,6 +369,10 @@ class EditorController extends ChangeNotifier {
       _addFreeText(_screenToCanvas(screenP));
       return;
     }
+    if (_currentTool == Tool.polyline) {
+      _handlePolylineTap(_screenToCanvas(screenP));
+      return;
+    }
     if (_currentTool != Tool.select && _currentTool != Tool.lasso) return;
     final p = _screenToCanvas(screenP);
     final hit = _itemAt(p);
@@ -387,7 +408,9 @@ class EditorController extends ChangeNotifier {
     } else if (_currentTool == Tool.select) {
       _handleSelectStart(p);
     } else if (_currentTool == Tool.text) {
-      // створення тексту — по тапу (onTap)
+      // text creation on tap (onTap)
+    } else if (_currentTool == Tool.polyline) {
+      // polyline points are added on tap (onTap), not on pan start
     } else {
       _startDrawing(p);
     }
@@ -460,17 +483,72 @@ class EditorController extends ChangeNotifier {
       }
       notifyListeners();
     }
-    _activeItem = null;
+    // Keep _activeItem alive while building a polyline; it is managed by taps.
+    if (!isPolylineBuilding) _activeItem = null;
     _interaction = _Interaction.none;
     _editSnapshotTaken = false;
   }
 
+  void _handlePolylineTap(Offset p) {
+    final snappedP = _snapToGrid(p);
+    if (_activeItem != null && !_items.contains(_activeItem!)) {
+      _activeItem = null;
+      _polylineCursorPos = null;
+    }
+    if (_activeItem == null) {
+      _selection.clear();
+      _pushUndo();
+      final item = DrawnItem(Tool.polyline, [snappedP]);
+      _insertByBand(item);
+      _activeItem = item;
+    } else {
+      _activeItem!.points.add(snappedP);
+    }
+    _polylineCursorPos = snappedP;
+    notifyListeners();
+  }
+
+  void _finishPolyline(DrawnItem item) {
+    // A double-tap fires onTapUp twice before onDoubleTap fires.
+    // Remove the duplicate endpoint added by the second tap.
+    final n = item.points.length;
+    if (n > 1 && (item.points[n - 1] - item.points[n - 2]).distance < 10.0) {
+      item.points.removeLast();
+    }
+    _activeItem = null;
+    _polylineCursorPos = null;
+    if (item.points.length < 2) {
+      _items.remove(item);
+      if (_undoStack.isNotEmpty) _undoStack.removeLast();
+    } else {
+      final idx = _items.indexOf(item);
+      if (idx != -1) _setSelection({idx});
+    }
+    notifyListeners();
+  }
+
+  void updatePolylineCursor(Offset screenP) {
+    if (!isPolylineBuilding) {
+      if (_polylineCursorPos != null) {
+        _polylineCursorPos = null;
+        notifyListeners();
+      }
+      return;
+    }
+    final p = _snapToGrid(_screenToCanvas(screenP));
+    if (p == _polylineCursorPos) return;
+    _polylineCursorPos = p;
+    notifyListeners();
+  }
+
   void cancelDrawing() {
     final item = _activeItem;
-    if (_interaction == _Interaction.drawing && item != null) {
+    if (item == null) return;
+    if (_interaction == _Interaction.drawing || isPolylineBuilding) {
       _items.remove(item);
       if (_undoStack.isNotEmpty) _undoStack.removeLast();
       _activeItem = null;
+      _polylineCursorPos = null;
       _interaction = _Interaction.none;
       notifyListeners();
     }
@@ -814,6 +892,10 @@ class EditorController extends ChangeNotifier {
   }
 
   void onDoubleTap(Offset screenP) {
+    if (_currentTool == Tool.polyline && _activeItem != null) {
+      _finishPolyline(_activeItem!);
+      return;
+    }
     if (_currentTool != Tool.select && _currentTool != Tool.lasso) return;
     final p = _screenToCanvas(screenP);
     // 1) подвійний клік по тексту → редагування на канвасі
@@ -825,7 +907,7 @@ class EditorController extends ChangeNotifier {
     }
     // 2) видалити вузол пера
     final sel = selectedItem;
-    if (sel != null && sel.tool == Tool.pen && sel.points.length > 2) {
+    if (sel != null && (sel.tool == Tool.pen || sel.tool == Tool.polyline) && sel.points.length > 2) {
       final localP = _toLocal(sel, p);
       for (int i = 0; i < sel.points.length; i++) {
         if ((sel.points[i] - localP).distance <= _hitRadius) {
@@ -847,7 +929,7 @@ class EditorController extends ChangeNotifier {
     for (int i = _items.length - 1; i >= 0; i--) {
       final it = _items[i];
       if (it.locked) continue;
-      if (it.tool != Tool.line && it.tool != Tool.arrow && it.tool != Tool.pen) {
+      if (it.tool != Tool.line && it.tool != Tool.arrow && it.tool != Tool.pen && it.tool != Tool.polyline) {
         continue;
       }
       final localP = _toLocal(it, p);
@@ -865,7 +947,7 @@ class EditorController extends ChangeNotifier {
   // Чи малюється елемент як гладка крива (а не прямі відрізки)?
   bool _renderAsCurve(DrawnItem it) {
     if (it.tool == Tool.line || it.tool == Tool.arrow) return it.points.length > 2;
-    if (it.tool == Tool.pen) return it.smoothed;
+    if (it.tool == Tool.pen || it.tool == Tool.polyline) return it.smoothed;
     return false;
   }
 
@@ -925,9 +1007,9 @@ class EditorController extends ChangeNotifier {
   
   void convertSelectedToCurve() {
     final it = selectedItem;
-    if (it == null || it.tool != Tool.pen || it.smoothed || it.locked) return;
+    if (it == null || (it.tool != Tool.pen && it.tool != Tool.polyline) || it.smoothed || it.locked) return;
     _pushUndo();
-    _simplifyPen(it);
+    if (it.tool == Tool.pen) _simplifyPen(it);
     it.smoothed = true;
     notifyListeners();
   }
@@ -1111,7 +1193,7 @@ class EditorController extends ChangeNotifier {
 
   // ---- Об'єднання ліній ----
   bool _isJoinableLine(Tool tool) =>
-      tool == Tool.line || tool == Tool.arrow || tool == Tool.pen;
+      tool == Tool.line || tool == Tool.arrow || tool == Tool.pen || tool == Tool.polyline;
 
   bool _pointsEqual(Offset a, Offset b, {double tolerance = 1e-6}) =>
       (a.dx - b.dx).abs() < tolerance && (a.dy - b.dy).abs() < tolerance;
@@ -1212,6 +1294,9 @@ class EditorController extends ChangeNotifier {
   void undo() {
     if (!canUndo) return;
     _editingTextId = null;
+    _activeItem = null;
+    _polylineCursorPos = null;
+    _interaction = _Interaction.none;
     _redoStack.add(_snapshot());
     final previous = _undoStack.removeLast();
     _items..clear()..addAll(previous);
@@ -1222,6 +1307,9 @@ class EditorController extends ChangeNotifier {
   void redo() {
     if (!canRedo) return;
     _editingTextId = null;
+    _activeItem = null;
+    _polylineCursorPos = null;
+    _interaction = _Interaction.none;
     _undoStack.add(_snapshot());
     final next = _redoStack.removeLast();
     _items..clear()..addAll(next);

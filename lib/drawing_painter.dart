@@ -14,6 +14,8 @@ class DrawingPainter extends CustomPainter {
   final int? editingId;
   final double gridSize;
   final bool showGrid;
+  final DrawnItem? activePolyline;
+  final Offset? polylineCursorPos;
 
   DrawingPainter(
     this.items, {
@@ -27,6 +29,8 @@ class DrawingPainter extends CustomPainter {
     this.editingId,
     this.gridSize = 20.0,
     this.showGrid = true,
+    this.activePolyline,
+    this.polylineCursorPos,
   });
 
   @override
@@ -41,6 +45,7 @@ class DrawingPainter extends CustomPainter {
       if (item.id == editingId) continue; // редагується на канвасі — малює overlay
       _drawItem(canvas, item);
     }
+    _drawPolylinePreview(canvas);
     _drawMultiHighlight(canvas);
     _drawSelection(canvas);
     _drawMarquee(canvas);
@@ -104,6 +109,17 @@ class DrawingPainter extends CustomPainter {
         case Tool.lasso:
           break;
         case Tool.pen:
+          if (pts.length < 2) break;
+          if (item.smoothed) {
+            _drawSmoothCurve(canvas, stroke, pts);
+          } else {
+            final path = Path()..moveTo(pts.first.dx, pts.first.dy);
+            for (int i = 1; i < pts.length; i++) {
+              path.lineTo(pts[i].dx, pts[i].dy);
+            }
+            canvas.drawPath(path, stroke);
+          }
+        case Tool.polyline:
           if (pts.length < 2) break;
           if (item.smoothed) {
             _drawSmoothCurve(canvas, stroke, pts);
@@ -308,6 +324,23 @@ class DrawingPainter extends CustomPainter {
           ..color = selectionColor
           ..strokeWidth = 1.0 / scale
           ..style = PaintingStyle.stroke);
+  }
+
+  void _drawPolylinePreview(Canvas canvas) {
+    final poly = activePolyline;
+    final cursor = polylineCursorPos;
+    if (poly == null || cursor == null || poly.points.isEmpty) return;
+    final preview = Paint()
+      ..color = poly.strokeColor.withValues(alpha: 0.5)
+      ..strokeWidth = poly.strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(poly.points.last, cursor, preview);
+    canvas.drawCircle(
+      cursor,
+      5 / scale,
+      Paint()..color = poly.strokeColor.withValues(alpha: 0.8),
+    );
   }
 
   void _drawSmoothCurve(Canvas canvas, Paint paint, List<Offset> pts) {
