@@ -72,7 +72,9 @@ class EditorController extends ChangeNotifier {
   int _nextGroupId = 1;
 
   // Поточний розмір камери — змінюється при ресайзі і застосовується до всіх камер
-  Size _cameraSize = const Size(72, 78);
+  Size _cameraSize = const Size(75, 75);
+  // Поточний розмір актора — змінювати тут для зміни дефолтного розміру
+  Size _actorSize = const Size(80, 80);
 
   bool get isPolylineBuilding => _currentTool == Tool.polyline && _activeItem != null;
   Offset? get polylineCursorPos => _polylineCursorPos;
@@ -121,6 +123,7 @@ class EditorController extends ChangeNotifier {
   }
 
   List<DrawnItem> get cameras => _items.where((e) => e.tool == Tool.camera).toList();
+  List<DrawnItem> get actors => _items.where((e) => e.tool == Tool.actor).toList();
 
   String cameraLabel(int num) => _cameraLabel(num);
 
@@ -128,6 +131,34 @@ class EditorController extends ChangeNotifier {
     final idx = _items.indexOf(cam);
     if (idx == -1) return;
     _setSelection({idx});
+    notifyListeners();
+  }
+
+  void selectActor(DrawnItem actor) {
+    final idx = _items.indexOf(actor);
+    if (idx == -1) return;
+    _setSelection({idx});
+    notifyListeners();
+  }
+
+  void setActorName(String v) {
+    final it = selectedItem;
+    if (it?.actorData == null || it!.locked) return;
+    it.actorData!.name = v;
+    notifyListeners();
+  }
+
+  void setActorDescription(String v) {
+    final it = selectedItem;
+    if (it?.actorData == null || it!.locked) return;
+    it.actorData!.description = v;
+    notifyListeners();
+  }
+
+  void setActorProps(String v) {
+    final it = selectedItem;
+    if (it?.actorData == null || it!.locked) return;
+    it.actorData!.props = v;
     notifyListeners();
   }
 
@@ -299,6 +330,38 @@ class EditorController extends ChangeNotifier {
 
     _setSelection({_items.indexOf(cam)});
     // Stay in camera mode for continuous placement
+    notifyListeners();
+  }
+
+  void _syncAllActorsToSize({int? excludeId}) {
+    for (final actor in _items) {
+      if (actor.tool != Tool.actor) continue;
+      if (excludeId == null || actor.id != excludeId) {
+        final center = actor.bounds.center;
+        final hw = _actorSize.width / 2;
+        final hh = _actorSize.height / 2;
+        actor.points[0] = Offset(center.dx - hw, center.dy - hh);
+        actor.points[1] = Offset(center.dx + hw, center.dy + hh);
+      }
+    }
+  }
+
+  void _addActor(Offset canvasP) {
+    final snapped = _snapToGrid(canvasP);
+    final tl = Offset(snapped.dx - _actorSize.width / 2, snapped.dy - _actorSize.height / 2);
+    final br = Offset(snapped.dx + _actorSize.width / 2, snapped.dy + _actorSize.height / 2);
+    _pushUndo();
+    final actor = DrawnItem(
+      Tool.actor,
+      [tl, br],
+      band: LayerBand.actor,
+      strokeColor: const Color(0xFF000000),
+      fillColor: const Color(0xFF43A047),
+      lockAspect: true,
+      actorData: ActorData(),
+    );
+    _insertByBand(actor);
+    _setSelection({_items.indexOf(actor)});
     notifyListeners();
   }
 
@@ -721,7 +784,7 @@ class EditorController extends ChangeNotifier {
     final center = item.bounds.center;
     final box = item.bounds.inflate(selectionPadding);
     final Offset local;
-    if (item.tool == Tool.camera) {
+    if (item.tool == Tool.camera || item.tool == Tool.actor) {
       local = Offset(box.right + rotationHandleOffset / _scale, center.dy);
     } else {
       local = Offset(center.dx, box.top - rotationHandleOffset / _scale);
@@ -747,6 +810,10 @@ class EditorController extends ChangeNotifier {
     }
     if (_currentTool == Tool.camera) {
       _addCamera(_screenToCanvas(screenP));
+      return;
+    }
+    if (_currentTool == Tool.actor) {
+      _addActor(_screenToCanvas(screenP));
       return;
     }
     if (_currentTool == Tool.polyline) {
@@ -798,6 +865,8 @@ class EditorController extends ChangeNotifier {
         _interaction = _Interaction.movingTable;
         notifyListeners();
       }
+    } else if (_currentTool == Tool.actor) {
+      // Actor placement is on tap; pans handled by select.
     } else if (_currentTool == Tool.polyline) {
       // polyline points are added on tap (onTap), not on pan start
     } else {
@@ -886,6 +955,11 @@ class EditorController extends ChangeNotifier {
         final b = sel.bounds;
         _cameraSize = Size(b.width.abs(), b.height.abs());
         _syncAllCamerasToSize(excludeId: sel.id);
+        notifyListeners();
+      } else if (sel.tool == Tool.actor) {
+        final b = sel.bounds;
+        _actorSize = Size(b.width.abs(), b.height.abs());
+        _syncAllActorsToSize(excludeId: sel.id);
         notifyListeners();
       }
     }
@@ -1184,8 +1258,8 @@ class EditorController extends ChangeNotifier {
     if (item == null || item.locked) return;
     final center = item.bounds.center;
     final angle = math.atan2(p.dy - center.dy, p.dx - center.dx);
-    // Camera handle is on the right (rest angle = 0); other handles are on top (rest angle = -π/2).
-    final restAngle = item.tool == Tool.camera ? 0.0 : math.pi / 2;
+    // Camera and actor handles are on the right (rest angle = 0); others are on top (rest angle = π/2).
+    final restAngle = (item.tool == Tool.camera || item.tool == Tool.actor) ? 0.0 : math.pi / 2;
     item.rotation = angle + restAngle;
     notifyListeners();
   }

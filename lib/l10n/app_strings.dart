@@ -25,6 +25,8 @@ class AppStrings {
   final String locked, lockedHint;
   final String convertToCurve;
   final String arrowHeadStart, arrowHeadEnd;
+  // актори
+  final String toolActor, actorName, actorProps, noActors;
   // камери
   final String toolCamera;
   final String cameraNumber, showNumber, cameraModel, shotType, lens;
@@ -121,6 +123,10 @@ class AppStrings {
     required this.arrowHeadStart,
     required this.arrowHeadEnd,
     required this.opacity,
+    required this.toolActor,
+    required this.actorName,
+    required this.actorProps,
+    required this.noActors,
     required this.toolCamera,
     required this.cameraNumber,
     required this.showNumber,
@@ -189,6 +195,7 @@ class AppStrings {
       case Tool.text: return textTool;
       case Tool.image: return imageTool;
       case Tool.camera: return toolCamera;
+      case Tool.actor: return toolActor;
     }
   }
 
@@ -263,6 +270,10 @@ class AppStrings {
     convertToCurve: 'Спростити криву',
     arrowHeadStart: 'Вістря на початку',
     arrowHeadEnd: 'Вістря в кінці',
+    toolActor: 'Актор',
+    actorName: 'Ім\'я',
+    actorProps: 'Реквізит',
+    noActors: 'Акторів ще немає',
     toolCamera: 'Камера',
     cameraNumber: 'Номер камери',
     showNumber: 'Показувати номер',
@@ -384,6 +395,10 @@ class AppStrings {
     convertToCurve: 'Simplify curve',
     arrowHeadStart: 'Head at start',
     arrowHeadEnd: 'Head at end',
+    toolActor: 'Actor',
+    actorName: 'Name',
+    actorProps: 'Props',
+    noActors: 'No actors yet',
     toolCamera: 'Camera',
     cameraNumber: 'Camera Number',
     showNumber: 'Show Number',

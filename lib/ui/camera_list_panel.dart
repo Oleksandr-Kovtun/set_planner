@@ -12,7 +12,10 @@ class CameraListPanel extends StatefulWidget {
 }
 
 class _CameraListPanelState extends State<CameraListPanel> {
-  final Set<int> _collapsed = {};
+  final Set<int> _cameraCollapsed = {};
+  final Set<int> _actorCollapsed = {};
+  bool _camerasExpanded = true;
+  bool _actorsExpanded = true;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +23,7 @@ class _CameraListPanelState extends State<CameraListPanel> {
       listenable: widget.controller,
       builder: (context, _) {
         final cameras = widget.controller.cameras;
+        final actors = widget.controller.actors;
         final selected = widget.controller.selectedItem;
         final fields = widget.controller.settings.cameraInfoFields;
 
@@ -28,37 +32,35 @@ class _CameraListPanelState extends State<CameraListPanel> {
             color: const Color(0xFFF5F5F5),
             border: Border(right: BorderSide(color: Colors.grey.shade300)),
           ),
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                color: Colors.grey.shade200,
-                child: Text(
-                  strings.cameras,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ---- Cameras section ----
+                _SectionHeader(
+                  title: strings.cameras,
+                  expanded: _camerasExpanded,
+                  onTap: () => setState(() => _camerasExpanded = !_camerasExpanded),
                 ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: cameras.isEmpty
-                    ? Center(
-                        child: Text(
-                          strings.noCameras,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(6),
-                        itemCount: cameras.length,
-                        itemBuilder: (context, index) {
-                          final cam = cameras[index];
+                if (_camerasExpanded) ...[
+                  if (cameras.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                      child: Text(
+                        strings.noCameras,
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Column(
+                        children: cameras.map((cam) {
                           final cd = cam.cameraData!;
                           final isSelected = cam.id == selected?.id;
-                          final isCollapsed = _collapsed.contains(cam.id);
-                          final rows = _buildRows(cd, fields);
-
+                          final isCollapsed = _cameraCollapsed.contains(cam.id);
+                          final rows = _buildCameraRows(cd, fields);
                           return _CameraCard(
                             camera: cam,
                             label: widget.controller.cameraLabel(cd.number),
@@ -70,23 +72,71 @@ class _CameraListPanelState extends State<CameraListPanel> {
                                 ? null
                                 : () => setState(() {
                                       if (isCollapsed) {
-                                        _collapsed.remove(cam.id);
+                                        _cameraCollapsed.remove(cam.id);
                                       } else {
-                                        _collapsed.add(cam.id);
+                                        _cameraCollapsed.add(cam.id);
                                       }
                                     }),
                           );
-                        },
+                        }).toList(),
                       ),
-              ),
-            ],
+                    ),
+                ],
+
+                // ---- Actors section ----
+                _SectionHeader(
+                  title: strings.actors,
+                  expanded: _actorsExpanded,
+                  onTap: () => setState(() => _actorsExpanded = !_actorsExpanded),
+                ),
+                if (_actorsExpanded) ...[
+                  if (actors.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                      child: Text(
+                        strings.noActors,
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Column(
+                        children: actors.map((actor) {
+                          final ad = actor.actorData!;
+                          final isSelected = actor.id == selected?.id;
+                          final isCollapsed = _actorCollapsed.contains(actor.id);
+                          final hasDetails = ad.description.isNotEmpty || ad.props.isNotEmpty;
+                          return _ActorCard(
+                            actor: actor,
+                            isSelected: isSelected,
+                            isCollapsed: isCollapsed,
+                            hasDetails: hasDetails,
+                            onSelect: () => widget.controller.selectActor(actor),
+                            onToggle: !hasDetails
+                                ? null
+                                : () => setState(() {
+                                      if (isCollapsed) {
+                                        _actorCollapsed.remove(actor.id);
+                                      } else {
+                                        _actorCollapsed.add(actor.id);
+                                      }
+                                    }),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                ],
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  static List<String> _buildRows(CameraData cd, Set<CameraInfoField> fields) {
+  static List<String> _buildCameraRows(CameraData cd, Set<CameraInfoField> fields) {
     if (fields.isEmpty) return [];
     final rows = <String>[];
     if (fields.contains(CameraInfoField.cameraModel) && cd.cameraModel.isNotEmpty) {
@@ -121,6 +171,45 @@ class _CameraListPanelState extends State<CameraListPanel> {
       rows.add('${strings.description}: ${cd.description}');
     }
     return rows;
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  const _SectionHeader({
+    required this.title,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        color: Colors.grey.shade200,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+            Icon(
+              expanded ? Icons.expand_less : Icons.expand_more,
+              size: 18,
+              color: Colors.grey.shade600,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -163,7 +252,6 @@ class _CameraCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
               child: Row(
@@ -209,7 +297,6 @@ class _CameraCard extends StatelessWidget {
                 ],
               ),
             ),
-            // Properties table
             if (onToggle != null && !isCollapsed) ...[
               Divider(height: 1, color: Colors.grey.shade200),
               Padding(
@@ -222,6 +309,111 @@ class _CameraCard extends StatelessWidget {
                             child: Text(r, style: const TextStyle(fontSize: 11)),
                           ))
                       .toList(),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActorCard extends StatelessWidget {
+  final DrawnItem actor;
+  final bool isSelected;
+  final bool isCollapsed;
+  final bool hasDetails;
+  final VoidCallback onSelect;
+  final VoidCallback? onToggle;
+
+  const _ActorCard({
+    required this.actor,
+    required this.isSelected,
+    required this.isCollapsed,
+    required this.hasDetails,
+    required this.onSelect,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ad = actor.actorData!;
+    final actorColor = actor.fillColor ?? const Color(0xFF43A047);
+    final displayName = ad.name.isNotEmpty ? ad.name : '—';
+
+    return GestureDetector(
+      onTap: onSelect,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.green.shade50 : Colors.white,
+          border: Border.all(
+            color: isSelected ? Colors.green.shade400 : Colors.grey.shade300,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: actorColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.black26, width: 0.5),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      displayName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (onToggle != null)
+                    GestureDetector(
+                      onTap: onToggle,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Icon(
+                          isCollapsed ? Icons.expand_more : Icons.expand_less,
+                          size: 18,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (hasDetails && !isCollapsed) ...[
+              Divider(height: 1, color: Colors.grey.shade200),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 5, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (ad.description.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text('${strings.description}: ${ad.description}',
+                            style: const TextStyle(fontSize: 11)),
+                      ),
+                    if (ad.props.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text('${strings.actorProps}: ${ad.props}',
+                            style: const TextStyle(fontSize: 11)),
+                      ),
+                  ],
                 ),
               ),
             ],

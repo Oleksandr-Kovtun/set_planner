@@ -44,7 +44,7 @@ class ToolBar extends StatelessWidget {
             _divider(),
             _toolButton(Tool.camera, Icons.videocam, strings.cameras),
             _divider(),
-            _comingSoonMenu(Icons.person, strings.actors, strings.actorsComingSoon),
+            _toolButton(Tool.actor, Icons.person, strings.actors),
             _divider(),
             _toolButton(Tool.text, Icons.title, strings.textTool),
             const Spacer(),
@@ -95,22 +95,6 @@ class ToolBar extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, color: color),
           Icon(Icons.arrow_drop_up, color: color),
-        ]),
-      ),
-    );
-  }
-
-  Widget _comingSoonMenu(IconData icon, String label, String message) {
-    return PopupMenuButton<String>(
-      tooltip: label,
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(enabled: false, child: Text(message)),
-      ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, color: Colors.white70),
-          const Icon(Icons.arrow_drop_up, color: Colors.white70),
         ]),
       ),
     );

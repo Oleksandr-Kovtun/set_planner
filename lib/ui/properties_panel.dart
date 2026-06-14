@@ -101,6 +101,11 @@ class PropertiesPanel extends StatelessWidget {
 
   // Панель для однієї фігури.
   Widget _singlePanel(DrawnItem item) {
+    if (item.tool == Tool.actor) {
+      return item.locked
+          ? _lockedPanel(strings.toolActor)
+          : _ActorPanel(controller: controller);
+    }
     if (item.tool == Tool.camera) {
       return item.locked
           ? _lockedPanel(strings.toolCamera)
@@ -584,6 +589,84 @@ class _LiveTextFieldState extends State<_LiveTextField> {
         ),
         onChanged: widget.onChanged,
       );
+}
+
+// ---- Панель властивостей актора ----
+class _ActorPanel extends StatelessWidget {
+  final EditorController controller;
+  const _ActorPanel({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final item = controller.selectedItem!;
+    final actor = item.actorData!;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${strings.properties}: ${strings.toolActor}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 12),
+
+          Text(strings.colorLabel),
+          const SizedBox(height: 4),
+          _ColorRow(
+            selected: item.fillColor,
+            onPick: controller.setFillColor,
+            includeNone: false,
+          ),
+          const SizedBox(height: 12),
+
+          _LiveTextField(
+            value: actor.name,
+            label: strings.actorName,
+            onChanged: controller.setActorName,
+          ),
+          const SizedBox(height: 12),
+
+          _LiveTextField(
+            value: actor.description,
+            label: strings.description,
+            onChanged: controller.setActorDescription,
+          ),
+          const SizedBox(height: 12),
+
+          _LiveTextField(
+            value: actor.props,
+            label: strings.actorProps,
+            onChanged: controller.setActorProps,
+          ),
+
+          const Divider(height: 24),
+          Text(strings.rotationAngle),
+          const SizedBox(height: 4),
+          _RotationField(
+            degrees: item.rotation * 180 / math.pi,
+            onSubmit: controller.setRotationDegrees,
+          ),
+          const SizedBox(height: 12),
+
+          Row(children: [
+            Checkbox(
+              value: item.locked,
+              onChanged: (v) => controller.setLocked(v ?? false),
+            ),
+            Expanded(child: Text(strings.locked)),
+          ]),
+          const SizedBox(height: 12),
+
+          const Divider(height: 24),
+          FilledButton.icon(
+            onPressed: controller.deleteSelected,
+            icon: const Icon(Icons.delete_outline),
+            label: Text(strings.delete),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ---- Панель властивостей камери ----

@@ -227,6 +227,8 @@ class DrawingPainter extends CustomPainter {
 
         case Tool.camera:
           _drawCamera(canvas, item, stroke, fill);
+        case Tool.actor:
+          _drawActor(canvas, item, stroke);
       }
     });
     // Info table is drawn after rotation so it stays horizontal on screen.
@@ -264,6 +266,32 @@ class DrawingPainter extends CustomPainter {
 
     canvas.drawPath(path, bodyFill);
     canvas.drawPath(path, stroke);
+  }
+
+  // Actor shape from SVG viewBox 152×152:
+  // head: circle cx=76 cy=75.57 r=31.07 → (0.5, 0.4972, r=0.2044)
+  // body: ellipse cx=76 cy=87.36 rx=71.25 ry=33.75 → centre (0.5, 0.5747), size (0.9375×0.4440)
+  void _drawActor(Canvas canvas, DrawnItem item, Paint stroke) {
+    final pts = item.points;
+    if (pts.length < 2) return;
+    final r = Rect.fromPoints(pts[0], pts[1]);
+    final W = r.width, H = r.height;
+    final l = r.left, t = r.top;
+
+    final bodyColor = item.fillColor ?? const Color(0xFF43A047);
+    final bodyFill = Paint()..color = bodyColor..style = PaintingStyle.fill;
+
+    // Body ellipse
+    final bodyCenter = Offset(l + 0.5 * W, t + 0.5747 * H);
+    final bodyRect = Rect.fromCenter(center: bodyCenter, width: 0.9375 * W, height: 0.4440 * H);
+    canvas.drawOval(bodyRect, bodyFill);
+    canvas.drawOval(bodyRect, stroke);
+
+    // Head circle (radius relative to the smaller axis to stay circular)
+    final headCenter = Offset(l + 0.5 * W, t + 0.4972 * H);
+    final headR = 0.2044 * math.min(W, H);
+    canvas.drawCircle(headCenter, headR, bodyFill);
+    canvas.drawCircle(headCenter, headR, stroke);
   }
 
   void _drawCameraInfoTable(Canvas canvas, DrawnItem item) {
@@ -408,7 +436,7 @@ class DrawingPainter extends CustomPainter {
 
       final Offset handleBase;
       final Offset rotPoint;
-      if (item.tool == Tool.camera) {
+      if (item.tool == Tool.camera || item.tool == Tool.actor) {
         handleBase = Offset(selBox.right, center.dy);
         rotPoint = Offset(selBox.right + 24 / scale, center.dy);
       } else {
@@ -421,7 +449,9 @@ class DrawingPainter extends CustomPainter {
       final fill = Paint()..color = selectionColor;
       if (item.tool != Tool.text) {
         if (toolIsBox(item.tool)) {
-          final showHandles = item.tool != Tool.camera || (item.cameraData?.allowResize ?? false);
+          final showHandles = item.tool == Tool.actor ||
+              item.tool != Tool.camera ||
+              (item.cameraData?.allowResize ?? false);
           if (showHandles) {
             for (final f in boxHandleFactors) {
               final pos = Offset(

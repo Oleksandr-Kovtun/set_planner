@@ -2,7 +2,18 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
-enum Tool { select, pen, polyline, line, rectangle, ellipse, triangle, arrow, star, svg, svgPath, lasso, text, image, camera }
+enum Tool { select, pen, polyline, line, rectangle, ellipse, triangle, arrow, star, svg, svgPath, lasso, text, image, camera, actor }
+
+// ---- Actor data ----
+class ActorData {
+  String name;
+  String description;
+  String props;
+
+  ActorData({this.name = '', this.description = '', this.props = ''});
+
+  ActorData copy() => ActorData(name: name, description: description, props: props);
+}
 
 // ---- Camera-specific enums and data ----
 enum ViewfinderType { none, small, big }
@@ -82,7 +93,8 @@ bool toolSupportsFill(Tool t) =>
     t == Tool.star ||
     t == Tool.svg ||
     t == Tool.svgPath ||
-    t == Tool.camera;
+    t == Tool.camera ||
+    t == Tool.actor;
 
 bool toolSupportsAspectLock(Tool t) =>
     t == Tool.rectangle ||
@@ -92,7 +104,8 @@ bool toolSupportsAspectLock(Tool t) =>
     t == Tool.svg ||
     t == Tool.svgPath ||
     t == Tool.image ||
-    t == Tool.camera;
+    t == Tool.camera ||
+    t == Tool.actor;
 
 // "Коробкові" фігури — задаються прямокутником, мають 8 ручок розміру.
 bool toolIsBox(Tool t) =>
@@ -103,7 +116,8 @@ bool toolIsBox(Tool t) =>
     t == Tool.svg ||
     t == Tool.svgPath ||
     t == Tool.image ||
-    t == Tool.camera;
+    t == Tool.camera ||
+    t == Tool.actor;
 
 // Відступ рамки виділення (і позицій ручок) від самої фігури.
 const double selectionPadding = 6.0;
@@ -152,6 +166,7 @@ class DrawnItem {
   bool arrowHeadStart; // вістря на початку
   bool arrowHeadEnd;   // вістря в кінці
   CameraData? cameraData; // дані камери (тільки для Tool.camera)
+  ActorData? actorData;   // дані актора (тільки для Tool.actor)
   bool visible; // false = не малювати (напр., прихований номер камери)
 
   DrawnItem(
@@ -183,6 +198,7 @@ class DrawnItem {
     this.arrowHeadStart = false,
     this.arrowHeadEnd = false,
     this.cameraData,
+    this.actorData,
     this.visible = true,
   }) : id = id ?? (++_idSeq);
 
@@ -215,6 +231,7 @@ class DrawnItem {
         arrowHeadStart: arrowHeadStart,
         arrowHeadEnd: arrowHeadEnd,
         cameraData: cameraData?.copy(),
+        actorData: actorData?.copy(),
         visible: visible,
       );
 
@@ -299,5 +316,6 @@ IconData toolIcon(Tool t) {
     case Tool.text: return Icons.title;
     case Tool.image: return Icons.photo;
     case Tool.camera: return Icons.videocam;
+    case Tool.actor: return Icons.person;
   }
 }
