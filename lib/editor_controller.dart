@@ -423,6 +423,10 @@ class EditorController extends ChangeNotifier {
       _marqueeStart = null;
       _marqueeCurrent = null;
       _interaction = _Interaction.none;
+      // Якщо лассо вибрало кілька елементів - перейти в режим Selection
+      if (_currentTool == Tool.lasso && _selection.length > 1) {
+        _currentTool = Tool.select;
+      }
       notifyListeners();
       return;
     }
@@ -443,7 +447,6 @@ class EditorController extends ChangeNotifier {
       if (!removed) {
         final idx = _items.indexOf(item);
         if (idx != -1) _setSelection({idx});
-        _currentTool = Tool.select; // після малювання — у режим вибору
       }
       notifyListeners();
     } else if ((wasMoving || wasResizing) && _settings.snapToGrid) {
