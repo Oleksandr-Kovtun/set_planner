@@ -59,6 +59,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
               _buildCameraInfoDisplay(),
               const Divider(height: 32),
               // Інтерфейс
+              _buildSectionTitle(strings.language),
+              const SizedBox(height: 12),
+              _buildLanguagePicker(),
+              const Divider(height: 32),
               _buildSectionTitle('Інтерфейс'),
               const SizedBox(height: 12),
               _buildColorPicker(),
@@ -187,6 +191,24 @@ class _SettingsDialogState extends State<SettingsDialog> {
       ],
       onChanged: (v) {
         if (v != null) setState(() => settings.cameraNumberStyle = v);
+      },
+    );
+  }
+
+  Widget _buildLanguagePicker() {
+    return DropdownButtonFormField<String>(
+      initialValue: settings.language,
+      decoration: InputDecoration(
+        labelText: strings.language,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        isDense: true,
+      ),
+      items: [
+        DropdownMenuItem(value: 'uk', child: Text(strings.languageUk)),
+        DropdownMenuItem(value: 'en', child: Text(strings.languageEn)),
+      ],
+      onChanged: (v) {
+        if (v != null) setState(() => settings.language = v);
       },
     );
   }

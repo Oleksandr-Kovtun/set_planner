@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'models.dart';
 import 'models/settings.dart';
+import 'l10n/app_strings.dart';
 
 export 'models/settings.dart' show CameraNumberStyle, CameraInfoField;
 
-enum _Interaction { none, drawing, moving, resizing, rotating, marquee }
+enum _Interaction { none, drawing, moving, resizing, rotating, marquee, movingTable }
 
 class EditorController extends ChangeNotifier {
   static const double handleRadius = 25;
@@ -54,7 +55,9 @@ class EditorController extends ChangeNotifier {
   Offset _offset = Offset.zero;
   Offset get offset => _offset;
 
-  AppSettings _settings = AppSettings();
+  AppSettings _settings = AppSettings(
+    language: strings == AppStrings.en ? 'en' : 'uk',
+  );
   AppSettings get settings => _settings;
 
   _Interaction _interaction = _Interaction.none;
@@ -64,6 +67,7 @@ class EditorController extends ChangeNotifier {
   double? _groupPrevAngle;
   bool _editSnapshotTaken = false;
   DrawnItem? _activeItem;
+  DrawnItem? _tableDragCamera;
   Offset? _polylineCursorPos;
   int _nextGroupId = 1;
 
@@ -165,6 +169,67 @@ class EditorController extends ChangeNotifier {
     }
   }
 
+  int _countTableRows(CameraData cd) {
+    final fields = _settings.cameraInfoFields;
+    int n = 0;
+    if (fields.contains(CameraInfoField.cameraModel) && cd.cameraModel.isNotEmpty) n++;
+    if (fields.contains(CameraInfoField.shotTypes) && cd.shotTypes.isNotEmpty) n++;
+    if (fields.contains(CameraInfoField.lens) && cd.lens.isNotEmpty) n++;
+    if (fields.contains(CameraInfoField.viewfinder) && cd.viewfinder != ViewfinderType.none) n++;
+    if (fields.contains(CameraInfoField.headphones) && cd.headphones != HeadphonesType.none) n++;
+    if (fields.contains(CameraInfoField.tripod) && cd.tripod) n++;
+    if (fields.contains(CameraInfoField.wheels) && cd.wheels) n++;
+    if (fields.contains(CameraInfoField.podium) && cd.podium) n++;
+    if (fields.contains(CameraInfoField.description) && cd.description.isNotEmpty) n++;
+    return n;
+  }
+
+  Rect? _cameraTableRect(DrawnItem cam) {
+    final cd = cam.cameraData;
+    if (cd == null || _settings.cameraInfoFields.isEmpty) return null;
+    if (_countTableRows(cd) == 0) return null;
+    const fontSize = 20.0;
+    const lineH = fontSize * 1.3;
+    const padding = 8.0;
+    const gap = 12.0;
+    const approxCharW = fontSize * 0.55;
+    const approxMaxCols = 30;
+    final rows = _countTableRows(cd);
+    final tableW = approxMaxCols * approxCharW + padding * 2;
+    final tableH = rows * lineH + padding * 2;
+    final vb = cam.visualBounds;
+    final Offset topLeft;
+    if (cd.tableOffset != null) {
+      topLeft = vb.center + cd.tableOffset!;
+    } else {
+      topLeft = Offset(vb.center.dx - tableW / 2, vb.bottom + gap);
+    }
+    return Rect.fromLTWH(topLeft.dx, topLeft.dy, tableW, tableH);
+  }
+
+  DrawnItem? _hitTestCameraTable(Offset canvasP) {
+    for (int i = _items.length - 1; i >= 0; i--) {
+      final item = _items[i];
+      if (item.tool != Tool.camera) continue;
+      final rect = _cameraTableRect(item);
+      if (rect != null && rect.inflate(4).contains(canvasP)) return item;
+    }
+    return null;
+  }
+
+  void _moveTable(Offset delta) {
+    final cam = _tableDragCamera;
+    if (cam == null) return;
+    if (!_editSnapshotTaken) { _pushUndo(); _editSnapshotTaken = true; }
+    final cd = cam.cameraData!;
+    if (cd.tableOffset == null) {
+      const approxHalfW = 99.0; // (30 chars * 0.55 * 20pt + 8*2) / 2
+      cd.tableOffset = Offset(-approxHalfW, cam.visualBounds.height / 2 + 12.0);
+    }
+    cd.tableOffset = cd.tableOffset! + delta;
+    notifyListeners();
+  }
+
   bool _isCameraLabel(DrawnItem item) {
     if (item.tool != Tool.text || item.boundToId == null) return false;
     return _items.any((e) => e.id == item.boundToId && e.tool == Tool.camera);
@@ -255,6 +320,14 @@ class EditorController extends ChangeNotifier {
         break;
       }
     }
+    notifyListeners();
+  }
+
+  void setCameraAllowResize(bool allow) {
+    final it = selectedItem;
+    if (it == null || it.cameraData == null || it.locked) return;
+    _pushUndo();
+    it.cameraData!.allowResize = allow;
     notifyListeners();
   }
 
@@ -612,6 +685,9 @@ class EditorController extends ChangeNotifier {
   }
 
   void updateSettings(AppSettings newSettings) {
+    if (newSettings.language != _settings.language) {
+      strings = AppStrings.of(newSettings.language);
+    }
     _settings = newSettings;
     notifyListeners();
   }
@@ -722,12 +798,20 @@ class EditorController extends ChangeNotifier {
       case _Interaction.marquee:
         _marqueeCurrent = p;
         notifyListeners();
+      case _Interaction.movingTable:
+        _moveTable(delta);
       case _Interaction.none:
         break;
     }
   }
 
   void onPanEnd() {
+    if (_interaction == _Interaction.movingTable) {
+      _tableDragCamera = null;
+      _interaction = _Interaction.none;
+      _editSnapshotTaken = false;
+      return;
+    }
     if (_interaction == _Interaction.marquee) {
       final rect = marqueeRect;
       if (rect != null && (rect.width.abs() + rect.height.abs()) > 4) {
@@ -952,6 +1036,14 @@ class EditorController extends ChangeNotifier {
         notifyListeners();
         return;
       }
+      final tableHit = _hitTestCameraTable(p);
+      if (tableHit != null) {
+        _setSelection({_items.indexOf(tableHit)});
+        _tableDragCamera = tableHit;
+        _interaction = _Interaction.movingTable;
+        notifyListeners();
+        return;
+      }
       _startMarquee(p); // порожнє місце → рамкове виділення
       return;
     }
@@ -966,12 +1058,15 @@ class EditorController extends ChangeNotifier {
       final localP = _toLocal(sel, p);
       if (sel.tool != Tool.text) {
         if (toolIsBox(sel.tool)) {
-          final box = sel.bounds.inflate(selectionPadding);
-          for (final f in boxHandleFactors) {
-            if ((_boxHandlePos(box, f) - localP).distance <= _hitRadius) {
-              _interaction = _Interaction.resizing;
-              _handleFactor = f;
-              return;
+          final cameraResizeLocked = sel.tool == Tool.camera && !(sel.cameraData?.allowResize ?? false);
+          if (!cameraResizeLocked) {
+            final box = sel.bounds.inflate(selectionPadding);
+            for (final f in boxHandleFactors) {
+              if ((_boxHandlePos(box, f) - localP).distance <= _hitRadius) {
+                _interaction = _Interaction.resizing;
+                _handleFactor = f;
+                return;
+              }
             }
           }
         } else {
@@ -994,6 +1089,14 @@ class EditorController extends ChangeNotifier {
         _setSelection(members);
       }
       _interaction = _Interaction.moving;
+      notifyListeners();
+      return;
+    }
+    final tableHit = _hitTestCameraTable(p);
+    if (tableHit != null) {
+      _setSelection({_items.indexOf(tableHit)});
+      _tableDragCamera = tableHit;
+      _interaction = _Interaction.movingTable;
       notifyListeners();
       return;
     }

@@ -621,6 +621,15 @@ class _CameraPanel extends StatelessWidget {
             ),
             Expanded(child: Text(strings.showNumber)),
           ]),
+
+          // Дозволити зміну розміру
+          Row(children: [
+            Checkbox(
+              value: cam.allowResize,
+              onChanged: (v) => controller.setCameraAllowResize(v ?? false),
+            ),
+            Expanded(child: Text(strings.allowResize)),
+          ]),
           const Divider(height: 24),
 
           // Колір камери

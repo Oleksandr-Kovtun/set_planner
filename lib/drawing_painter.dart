@@ -229,6 +229,10 @@ class DrawingPainter extends CustomPainter {
           _drawCamera(canvas, item, stroke, fill);
       }
     });
+    // Info table is drawn after rotation so it stays horizontal on screen.
+    if (item.tool == Tool.camera) {
+      _drawCameraInfoTable(canvas, item);
+    }
   }
 
   // Camera icon — polygon scaled from SVG (viewBox 152×152):
@@ -260,8 +264,6 @@ class DrawingPainter extends CustomPainter {
 
     canvas.drawPath(path, bodyFill);
     canvas.drawPath(path, stroke);
-
-    _drawCameraInfoTable(canvas, item);
   }
 
   void _drawCameraInfoTable(Canvas canvas, DrawnItem item) {
@@ -304,9 +306,9 @@ class DrawingPainter extends CustomPainter {
 
     if (rows.isEmpty) return;
 
-    const fontSize = 11.0;
-    const padding = 4.0;
-    const gap = 6.0;
+    const fontSize = 20.0;
+    const padding = 8.0;
+    const gap = 12.0;
 
     final tp = TextPainter(
       text: TextSpan(
@@ -321,14 +323,17 @@ class DrawingPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
 
-    final r = item.bounds;
-    final tableLeft = r.center.dx - (tp.width / 2 + padding);
-    final tableTop = r.bottom + gap;
-    final tableRect = Rect.fromLTWH(
-      tableLeft, tableTop,
-      tp.width + padding * 2,
-      tp.height + padding * 2,
-    );
+    final r = item.visualBounds;
+    final tableW = tp.width + padding * 2;
+    final tableH = tp.height + padding * 2;
+    final Offset tableTopLeft;
+    final tableOffset = item.cameraData!.tableOffset;
+    if (tableOffset != null) {
+      tableTopLeft = r.center + tableOffset;
+    } else {
+      tableTopLeft = Offset(r.center.dx - tableW / 2, r.bottom + gap);
+    }
+    final tableRect = Rect.fromLTWH(tableTopLeft.dx, tableTopLeft.dy, tableW, tableH);
 
     canvas.drawRect(tableRect,
         Paint()..color = Colors.white..style = PaintingStyle.fill);
@@ -339,7 +344,7 @@ class DrawingPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.5);
 
-    tp.paint(canvas, Offset(tableLeft + padding, tableTop + padding));
+    tp.paint(canvas, tableTopLeft + const Offset(padding, padding));
   }
 
   // Підсвічування кількох вибраних елементів + спільна рамка.
@@ -409,12 +414,15 @@ class DrawingPainter extends CustomPainter {
       final fill = Paint()..color = selectionColor;
       if (item.tool != Tool.text) {
         if (toolIsBox(item.tool)) {
-          for (final f in boxHandleFactors) {
-            final pos = Offset(
-              selBox.left + f.dx * selBox.width,
-              selBox.top + f.dy * selBox.height,
-            );
-            canvas.drawCircle(pos, 5 / scale, fill);
+          final showHandles = item.tool != Tool.camera || (item.cameraData?.allowResize ?? false);
+          if (showHandles) {
+            for (final f in boxHandleFactors) {
+              final pos = Offset(
+                selBox.left + f.dx * selBox.width,
+                selBox.top + f.dy * selBox.height,
+              );
+              canvas.drawCircle(pos, 5 / scale, fill);
+            }
           }
         } else {
           for (final p in item.points) {

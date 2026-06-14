@@ -44,6 +44,7 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _panelVisible = true;
   final FocusNode _rootFocus = FocusNode();
   bool _wasEditing = false;
+  String _appliedLanguage = '';
 
   @override
   void initState() {
@@ -60,6 +61,12 @@ class _EditorScreenState extends State<EditorScreen> {
       });
     }
     _wasEditing = editing;
+
+    final newLang = _controller.settings.language;
+    if (newLang != _appliedLanguage) {
+      _appliedLanguage = newLang;
+      setState(() {});
+    }
   }
 
   @override

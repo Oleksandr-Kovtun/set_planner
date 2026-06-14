@@ -36,6 +36,8 @@ class AppStrings {
   final String cameraColor, description;
   final String yes;
   final String cameraInfoDisplay;
+  final String allowResize;
+  final String language, languageUk, languageEn;
 
   const AppStrings({
     required this.appTitle,
@@ -135,6 +137,10 @@ class AppStrings {
     required this.description,
     required this.yes,
     required this.cameraInfoDisplay,
+    required this.allowResize,
+    required this.language,
+    required this.languageUk,
+    required this.languageEn,
   });
 
   // Назва фігури за інструментом.
@@ -257,6 +263,10 @@ class AppStrings {
     description: 'Опис',
     yes: 'Так',
     cameraInfoDisplay: 'Відображення властивостей камери',
+    allowResize: 'Дозволити зміну розміру',
+    language: 'Мова',
+    languageUk: 'Українська',
+    languageEn: 'English',
   );
 
   // ===== English =====
@@ -358,6 +368,10 @@ class AppStrings {
     description: 'Description',
     yes: 'Yes',
     cameraInfoDisplay: 'Camera info on canvas',
+    allowResize: 'Allow resize',
+    language: 'Language',
+    languageUk: 'Українська',
+    languageEn: 'English',
   );
 
   static AppStrings of(String languageCode) {

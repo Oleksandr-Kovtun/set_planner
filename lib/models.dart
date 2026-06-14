@@ -24,6 +24,8 @@ class CameraData {
   bool podium;
   String podiumDescription;
   String description;
+  Offset? tableOffset; // null = auto-position; else offset from visualBounds.center to table topLeft
+  bool allowResize;
 
   CameraData({
     required this.number,
@@ -39,6 +41,8 @@ class CameraData {
     this.podium = false,
     this.podiumDescription = '',
     this.description = '',
+    this.tableOffset,
+    this.allowResize = false,
   }) : shotTypes = shotTypes ?? {};
 
   CameraData copy() => CameraData(
@@ -55,6 +59,8 @@ class CameraData {
         podium: podium,
         podiumDescription: podiumDescription,
         description: description,
+        tableOffset: tableOffset,
+        allowResize: allowResize,
       );
 }
 

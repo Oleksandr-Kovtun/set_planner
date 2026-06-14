@@ -59,6 +59,9 @@ class AppSettings {
   CameraNumberStyle cameraNumberStyle;
   Set<CameraInfoField> cameraInfoFields;
 
+  // Мова
+  String language; // 'uk' | 'en'
+
   AppSettings({
     this.paperSize = PaperSize.a4,
     this.paperOrientation = PaperOrientation.landscape,
@@ -68,6 +71,7 @@ class AppSettings {
     this.primaryColor = Colors.blue,
     this.cameraNumberStyle = CameraNumberStyle.numeric,
     Set<CameraInfoField>? cameraInfoFields,
+    this.language = 'uk',
   }) : cameraInfoFields = cameraInfoFields ?? {};
 
   AppSettings copy({
@@ -79,6 +83,7 @@ class AppSettings {
     Color? primaryColor,
     CameraNumberStyle? cameraNumberStyle,
     Set<CameraInfoField>? cameraInfoFields,
+    String? language,
   }) {
     return AppSettings(
       paperSize: paperSize ?? this.paperSize,
@@ -89,6 +94,7 @@ class AppSettings {
       primaryColor: primaryColor ?? this.primaryColor,
       cameraNumberStyle: cameraNumberStyle ?? this.cameraNumberStyle,
       cameraInfoFields: cameraInfoFields ?? Set.of(this.cameraInfoFields),
+      language: language ?? this.language,
     );
   }
 }
