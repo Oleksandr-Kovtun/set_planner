@@ -312,7 +312,7 @@ class DrawingPainter extends CustomPainter {
   // Jib crane — SVG viewBox 304×800, all coords normalised by W/H.
   // Rounded-rect legs: rx = 11.48/304 × W ≈ 0.0378 × W.
   void _drawJib(Canvas canvas, double l, double t, double W, double H, Paint stroke, Paint? fill) {
-    final rr = Radius.circular(0.0378 * W);
+    final rr = Radius.circular(0.04 * W);
 
     void filled(Rect rect, {bool rounded = false}) {
       if (fill != null) {
@@ -323,27 +323,35 @@ class DrawingPainter extends CustomPainter {
       else canvas.drawRect(rect, stroke);
     }
 
-    Rect box(double x, double y, double w, double h) =>
-        Rect.fromLTWH(l + x * W, t + y * H, w * W, h * H);
+    // All fixed components scale with W only (SVG viewBox 304×800).
+    // The upper boom fills whatever height remains above the fixed base.
+    final double s = W / 304.0; // px per SVG unit
 
-    // 4 legs (rounded)
-    filled(box(0.1217, 0.6256, 0.0987, 0.1000), rounded: true);
-    filled(box(0.1217, 0.8131, 0.0987, 0.1000), rounded: true);
-    filled(box(0.7796, 0.6256, 0.0987, 0.1000), rounded: true);
-    filled(box(0.7796, 0.8131, 0.0987, 0.1000), rounded: true);
-    // Body block
-    filled(box(0.2204, 0.6631, 0.5592, 0.2125));
+    // Fixed base section: lower column (200u) + everything below it (282u) = 482u total
+    final double fixedH = 482.0 * s;
+    final double boomH = (H - fixedH).clamp(0.0, double.infinity);
+    final double ft = t + boomH; // top of fixed section on screen
+
+    // Upper boom (variable — only this part stretches when height changes)
+    if (boomH > 0) {
+      filled(Rect.fromLTWH(l + 0.4588 * W, t, 0.0822 * W, boomH));
+    }
     // Lower column
-    filled(box(0.4425, 0.3975, 0.1151, 0.2500));
-    // Upper boom
-    filled(box(0.4588, 0.0163, 0.0822, 0.3813));
-    // Base column (widest, drawn last)
-    filled(box(0.4096, 0.6475, 0.1809, 0.3188));
+    filled(Rect.fromLTWH(l + 0.4425 * W, ft, 0.1151 * W, 200.0 * s));
+    // Base column (wider, below lower column)
+    filled(Rect.fromLTWH(l + 0.4096 * W, ft + 200.0 * s, 0.1809 * W, 255.0 * s));
+    // Body block (overlaps the lower/base column area)
+    filled(Rect.fromLTWH(l + 0.2204 * W, ft + 212.5 * s, 0.5592 * W, 170.0 * s));
+    // 4 legs (rounded)
+    filled(Rect.fromLTWH(l + 0.1217 * W, ft + 182.5 * s, 0.0987 * W, 80.0 * s), rounded: true);
+    filled(Rect.fromLTWH(l + 0.7796 * W, ft + 182.5 * s, 0.0987 * W, 80.0 * s), rounded: true);
+    filled(Rect.fromLTWH(l + 0.1217 * W, ft + 332.5 * s, 0.0987 * W, 80.0 * s), rounded: true);
+    filled(Rect.fromLTWH(l + 0.7796 * W, ft + 332.5 * s, 0.0987 * W, 80.0 * s), rounded: true);
   }
 
   // Dolly cart — SVG viewBox 300×300, rounded-rect legs: rx = 11.48/300 × W ≈ 0.0383 × W.
   void _drawDolly(Canvas canvas, double l, double t, double W, double H, Paint stroke, Paint? fill) {
-    final rr = Radius.circular(0.0383 * W);
+    final rr = Radius.circular(0.04 * W);
 
     void filled(Rect rect, {bool rounded = false}) {
       if (fill != null) {

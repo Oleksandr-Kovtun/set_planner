@@ -186,9 +186,14 @@ class EditorController extends ChangeNotifier {
     final it = selectedItem;
     if (it?.rigData == null || it!.locked || h <= 0) return;
     _pushUndo();
-    final ratio = it.targetAspectRatio;
-    final w = ratio > 0 ? h * ratio : h;
     final center = it.bounds.center;
+    final double w;
+    if (it.lockAspect) {
+      final ratio = it.targetAspectRatio;
+      w = ratio > 0 ? h * ratio : h;
+    } else {
+      w = it.bounds.width; // keep width (JIB: only boom stretches)
+    }
     it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
     it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
     notifyListeners();
@@ -418,7 +423,7 @@ class EditorController extends ChangeNotifier {
       band: LayerBand.base,
       strokeColor: const Color(0xFF000000),
       fillColor: fillColor,
-      lockAspect: true,
+      lockAspect: type != RigType.jib,
       rigData: RigData(type: type),
     );
     _insertByBand(rig);

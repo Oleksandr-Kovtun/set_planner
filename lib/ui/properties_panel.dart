@@ -712,13 +712,15 @@ class _RigPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          Text('${strings.rigWidth}:'),
-          const SizedBox(height: 4),
-          _RigSizeField(
-            value: w,
-            onSubmit: controller.setRigWidth,
-          ),
-          const SizedBox(height: 12),
+          if (rig.type != RigType.jib) ...[
+            Text('${strings.rigWidth}:'),
+            const SizedBox(height: 4),
+            _RigSizeField(
+              value: w,
+              onSubmit: controller.setRigWidth,
+            ),
+            const SizedBox(height: 12),
+          ],
 
           Text('${strings.rigHeight}:'),
           const SizedBox(height: 4),
