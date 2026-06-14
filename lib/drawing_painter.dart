@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'models.dart';
+import 'models/settings.dart';
+import 'l10n/app_strings.dart';
 
 class DrawingPainter extends CustomPainter {
   final List<DrawnItem> items;
@@ -16,6 +18,7 @@ class DrawingPainter extends CustomPainter {
   final bool showGrid;
   final DrawnItem? activePolyline;
   final Offset? polylineCursorPos;
+  final Set<CameraInfoField> cameraInfoFields;
 
   DrawingPainter(
     this.items, {
@@ -31,6 +34,7 @@ class DrawingPainter extends CustomPainter {
     this.showGrid = true,
     this.activePolyline,
     this.polylineCursorPos,
+    this.cameraInfoFields = const {},
   });
 
   @override
@@ -92,6 +96,7 @@ class DrawingPainter extends CustomPainter {
   }
 
   void _drawItem(Canvas canvas, DrawnItem item) {
+    if (!item.visible) return;
     _withRotation(canvas, item, () {
       final stroke = Paint()
         ..color = item.strokeColor
@@ -219,9 +224,122 @@ class DrawingPainter extends CustomPainter {
             textDirection: TextDirection.ltr,
           )..layout();
           tp.paint(canvas, item.bounds.topLeft);
-          
+
+        case Tool.camera:
+          _drawCamera(canvas, item, stroke, fill);
       }
     });
+  }
+
+  // Camera icon — polygon scaled from SVG (viewBox 152×152):
+  // points="32 16 67.28 65.13 34.47 68.72 32.95 126.36 45.66 136
+  //         106.34 136 119.05 126.36 117.53 68.72 84.72 65.13 120 16"
+  void _drawCamera(Canvas canvas, DrawnItem item, Paint stroke, Paint? fill) {
+    final pts = item.points;
+    if (pts.length < 2) return;
+    final r = Rect.fromPoints(pts[0], pts[1]);
+    final W = r.width, H = r.height;
+    final l = r.left, t = r.top;
+
+    final bodyColor = item.fillColor ?? const Color(0xFF455A64);
+    final bodyFill = Paint()..color = bodyColor..style = PaintingStyle.fill;
+
+    // Coordinates normalised by dividing original SVG values by 152
+    final path = Path()
+      ..moveTo(l + 0.2105 * W, t + 0.1053 * H)  // 32, 16
+      ..lineTo(l + 0.4426 * W, t + 0.4285 * H)  // 67.28, 65.13
+      ..lineTo(l + 0.2268 * W, t + 0.4521 * H)  // 34.47, 68.72
+      ..lineTo(l + 0.2167 * W, t + 0.8313 * H)  // 32.95, 126.36
+      ..lineTo(l + 0.3004 * W, t + 0.8947 * H)  // 45.66, 136
+      ..lineTo(l + 0.6996 * W, t + 0.8947 * H)  // 106.34, 136
+      ..lineTo(l + 0.7832 * W, t + 0.8313 * H)  // 119.05, 126.36
+      ..lineTo(l + 0.7732 * W, t + 0.4521 * H)  // 117.53, 68.72
+      ..lineTo(l + 0.5574 * W, t + 0.4285 * H)  // 84.72, 65.13
+      ..lineTo(l + 0.7895 * W, t + 0.1053 * H)  // 120, 16
+      ..close();
+
+    canvas.drawPath(path, bodyFill);
+    canvas.drawPath(path, stroke);
+
+    _drawCameraInfoTable(canvas, item);
+  }
+
+  void _drawCameraInfoTable(Canvas canvas, DrawnItem item) {
+    final cd = item.cameraData;
+    if (cd == null || cameraInfoFields.isEmpty) return;
+
+    final rows = <String>[];
+
+    if (cameraInfoFields.contains(CameraInfoField.cameraModel) && cd.cameraModel.isNotEmpty) {
+      rows.add('${strings.cameraModel}: ${cd.cameraModel}');
+    }
+    if (cameraInfoFields.contains(CameraInfoField.shotTypes) && cd.shotTypes.isNotEmpty) {
+      rows.add('${strings.shotType}: ${cd.shotTypes.join(', ')}');
+    }
+    if (cameraInfoFields.contains(CameraInfoField.lens) && cd.lens.isNotEmpty) {
+      rows.add('${strings.lens}: ${cd.lens}');
+    }
+    if (cameraInfoFields.contains(CameraInfoField.viewfinder) && cd.viewfinder != ViewfinderType.none) {
+      final v = cd.viewfinder == ViewfinderType.small ? strings.viewfinderSmall : strings.viewfinderBig;
+      rows.add('${strings.viewfinder}: ${strings.yes} ($v)');
+    }
+    if (cameraInfoFields.contains(CameraInfoField.headphones) && cd.headphones != HeadphonesType.none) {
+      final h = cd.headphones == HeadphonesType.single ? strings.headphonesSingle : strings.headphonesDouble;
+      rows.add('${strings.headphones}: ${strings.yes} ($h)');
+    }
+    if (cameraInfoFields.contains(CameraInfoField.tripod) && cd.tripod) {
+      final desc = cd.tripodDescription.isNotEmpty ? ' (${cd.tripodDescription})' : '';
+      rows.add('${strings.tripod}: ${strings.yes}$desc');
+    }
+    if (cameraInfoFields.contains(CameraInfoField.wheels) && cd.wheels) {
+      rows.add('${strings.wheels}: ${strings.yes}');
+    }
+    if (cameraInfoFields.contains(CameraInfoField.podium) && cd.podium) {
+      final desc = cd.podiumDescription.isNotEmpty ? ' (${cd.podiumDescription})' : '';
+      rows.add('${strings.podium}: ${strings.yes}$desc');
+    }
+    if (cameraInfoFields.contains(CameraInfoField.description) && cd.description.isNotEmpty) {
+      rows.add('${strings.description}: ${cd.description}');
+    }
+
+    if (rows.isEmpty) return;
+
+    const fontSize = 11.0;
+    const padding = 4.0;
+    const gap = 6.0;
+
+    final tp = TextPainter(
+      text: TextSpan(
+        text: rows.join('\n'),
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: fontSize,
+          fontWeight: FontWeight.normal,
+        ),
+      ),
+      textAlign: TextAlign.left,
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final r = item.bounds;
+    final tableLeft = r.center.dx - (tp.width / 2 + padding);
+    final tableTop = r.bottom + gap;
+    final tableRect = Rect.fromLTWH(
+      tableLeft, tableTop,
+      tp.width + padding * 2,
+      tp.height + padding * 2,
+    );
+
+    canvas.drawRect(tableRect,
+        Paint()..color = Colors.white..style = PaintingStyle.fill);
+    canvas.drawRect(
+        tableRect,
+        Paint()
+          ..color = Colors.black.withValues(alpha: 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5);
+
+    tp.paint(canvas, Offset(tableLeft + padding, tableTop + padding));
   }
 
   // Підсвічування кількох вибраних елементів + спільна рамка.

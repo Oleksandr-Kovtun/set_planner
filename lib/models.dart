@@ -2,7 +2,61 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
-enum Tool { select, pen, polyline, line, rectangle, ellipse, triangle, arrow, star, svg, svgPath, lasso, text, image }
+enum Tool { select, pen, polyline, line, rectangle, ellipse, triangle, arrow, star, svg, svgPath, lasso, text, image, camera }
+
+// ---- Camera-specific enums and data ----
+enum ViewfinderType { none, small, big }
+enum HeadphonesType { none, single, double_ }
+
+const List<String> kShotTypes = ['ELS', 'LS', 'MLS', 'MS', 'MCU', 'CU', 'BCU', 'ECU'];
+
+class CameraData {
+  int number;
+  bool showNumber;
+  String cameraModel;
+  Set<String> shotTypes;
+  String lens;
+  ViewfinderType viewfinder;
+  HeadphonesType headphones;
+  bool tripod;
+  String tripodDescription;
+  bool wheels;
+  bool podium;
+  String podiumDescription;
+  String description;
+
+  CameraData({
+    required this.number,
+    this.showNumber = true,
+    this.cameraModel = '',
+    Set<String>? shotTypes,
+    this.lens = '',
+    this.viewfinder = ViewfinderType.big,
+    this.headphones = HeadphonesType.double_,
+    this.tripod = false,
+    this.tripodDescription = '',
+    this.wheels = false,
+    this.podium = false,
+    this.podiumDescription = '',
+    this.description = '',
+  }) : shotTypes = shotTypes ?? {};
+
+  CameraData copy() => CameraData(
+        number: number,
+        showNumber: showNumber,
+        cameraModel: cameraModel,
+        shotTypes: Set.of(shotTypes),
+        lens: lens,
+        viewfinder: viewfinder,
+        headphones: headphones,
+        tripod: tripod,
+        tripodDescription: tripodDescription,
+        wheels: wheels,
+        podium: podium,
+        podiumDescription: podiumDescription,
+        description: description,
+      );
+}
 
 // Групи рівнів (z-порядок): base завжди внизу, далі actor, найвище camera.
 enum LayerBand { base, actor, camera }
@@ -16,21 +70,23 @@ const List<Tool> shapeTools = [
 ];
 
 bool toolSupportsFill(Tool t) =>
-    t == Tool.rectangle || 
-    t == Tool.ellipse || 
-    t == Tool.triangle || 
+    t == Tool.rectangle ||
+    t == Tool.ellipse ||
+    t == Tool.triangle ||
     t == Tool.star ||
     t == Tool.svg ||
-    t == Tool.svgPath;
+    t == Tool.svgPath ||
+    t == Tool.camera;
 
 bool toolSupportsAspectLock(Tool t) =>
-    t == Tool.rectangle || 
-    t == Tool.ellipse || 
-    t == Tool.triangle || 
-    t == Tool.star || 
-    t == Tool.svg || 
+    t == Tool.rectangle ||
+    t == Tool.ellipse ||
+    t == Tool.triangle ||
+    t == Tool.star ||
+    t == Tool.svg ||
     t == Tool.svgPath ||
-    t == Tool.image;
+    t == Tool.image ||
+    t == Tool.camera;
 
 // "Коробкові" фігури — задаються прямокутником, мають 8 ручок розміру.
 bool toolIsBox(Tool t) =>
@@ -40,7 +96,8 @@ bool toolIsBox(Tool t) =>
     t == Tool.star ||
     t == Tool.svg ||
     t == Tool.svgPath ||
-    t == Tool.image;
+    t == Tool.image ||
+    t == Tool.camera;
 
 // Відступ рамки виділення (і позицій ручок) від самої фігури.
 const double selectionPadding = 6.0;
@@ -88,6 +145,8 @@ class DrawnItem {
   bool smoothed;
   bool arrowHeadStart; // вістря на початку
   bool arrowHeadEnd;   // вістря в кінці
+  CameraData? cameraData; // дані камери (тільки для Tool.camera)
+  bool visible; // false = не малювати (напр., прихований номер камери)
 
   DrawnItem(
     this.tool,
@@ -117,6 +176,8 @@ class DrawnItem {
     this.smoothed = false,
     this.arrowHeadStart = false,
     this.arrowHeadEnd = false,
+    this.cameraData,
+    this.visible = true,
   }) : id = id ?? (++_idSeq);
 
   DrawnItem copy() => DrawnItem(
@@ -147,6 +208,8 @@ class DrawnItem {
         smoothed: smoothed,
         arrowHeadStart: arrowHeadStart,
         arrowHeadEnd: arrowHeadEnd,
+        cameraData: cameraData?.copy(),
+        visible: visible,
       );
 
   Rect get bounds {
@@ -222,12 +285,13 @@ IconData toolIcon(Tool t) {
     case Tool.rectangle: return Icons.crop_square;
     case Tool.ellipse: return Icons.circle_outlined;
     case Tool.triangle: return Icons.change_history;
-    case Tool.arrow: return Icons.horizontal_rule; // TODO: замінити на іконку стрілки
+    case Tool.arrow: return Icons.horizontal_rule;
     case Tool.star: return Icons.star_border;
     case Tool.svg: return Icons.image;
     case Tool.svgPath: return Icons.polyline;
     case Tool.lasso: return Icons.highlight_alt;
     case Tool.text: return Icons.title;
     case Tool.image: return Icons.photo;
+    case Tool.camera: return Icons.videocam;
   }
 }

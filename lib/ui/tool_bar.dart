@@ -42,7 +42,7 @@ class ToolBar extends StatelessWidget {
             _divider(),
             _shapesMenu(),
             _divider(),
-            _comingSoonMenu(Icons.videocam, strings.cameras, strings.camerasComingSoon),
+            _toolButton(Tool.camera, Icons.videocam, strings.cameras),
             _divider(),
             _comingSoonMenu(Icons.person, strings.actors, strings.actorsComingSoon),
             _divider(),

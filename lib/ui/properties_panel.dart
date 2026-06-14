@@ -101,7 +101,17 @@ class PropertiesPanel extends StatelessWidget {
 
   // Панель для однієї фігури.
   Widget _singlePanel(DrawnItem item) {
-    if (item.tool == Tool.text) return _textPanel(item);
+    if (item.tool == Tool.camera) {
+      return item.locked
+          ? _lockedPanel(strings.toolCamera)
+          : _CameraPanel(controller: controller);
+    }
+    if (item.tool == Tool.text) {
+      // Якщо це мітка камери — показуємо спеціальну панель
+      final cam = controller.parentCamera(item);
+      if (cam != null) return _CameraLabelPanel(controller: controller, label: item, camera: cam);
+      return _textPanel(item);
+    }
     if (item.locked) return _lockedPanel(strings.toolLabel(item.tool));
     return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
@@ -532,4 +542,429 @@ class _TextContentFieldState extends State<_TextContentField> {
       onChanged: widget.onChanged,
     );
   }
+}
+
+// ---- Текстове поле, що не оновлює controller під час фокусу ----
+class _LiveTextField extends StatefulWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+  final String label;
+  const _LiveTextField({required this.value, required this.onChanged, required this.label});
+  @override
+  State<_LiveTextField> createState() => _LiveTextFieldState();
+}
+
+class _LiveTextFieldState extends State<_LiveTextField> {
+  late final TextEditingController _c;
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _c = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant _LiveTextField old) {
+    super.didUpdateWidget(old);
+    if (!_focus.hasFocus && widget.value != _c.text) _c.text = widget.value;
+  }
+
+  @override
+  void dispose() { _c.dispose(); _focus.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+        controller: _c,
+        focusNode: _focus,
+        decoration: InputDecoration(
+          isDense: true,
+          border: const OutlineInputBorder(),
+          labelText: widget.label,
+        ),
+        onChanged: widget.onChanged,
+      );
+}
+
+// ---- Панель властивостей камери ----
+class _CameraPanel extends StatelessWidget {
+  final EditorController controller;
+  const _CameraPanel({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final item = controller.selectedItem!;
+    final cam = item.cameraData!;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${strings.properties}: ${strings.toolCamera}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 12),
+
+          // Номер камери
+          Text(strings.cameraNumber),
+          const SizedBox(height: 4),
+          _CameraNumberField(
+            number: cam.number,
+            onSubmit: controller.setCameraNumber,
+          ),
+          const SizedBox(height: 8),
+
+          // Показувати номер
+          Row(children: [
+            Checkbox(
+              value: cam.showNumber,
+              onChanged: (v) => controller.setShowCameraNumber(v ?? true),
+            ),
+            Expanded(child: Text(strings.showNumber)),
+          ]),
+          const Divider(height: 24),
+
+          // Колір камери
+          Text(strings.cameraColor),
+          const SizedBox(height: 4),
+          _ColorRow(
+            selected: item.fillColor,
+            onPick: controller.setFillColor,
+            includeNone: false,
+          ),
+          const SizedBox(height: 12),
+
+          // Модель камери
+          _LiveTextField(
+            value: cam.cameraModel,
+            label: strings.cameraModel,
+            onChanged: controller.setCameraModel,
+          ),
+          const SizedBox(height: 12),
+
+          // Об'єктив
+          _LiveTextField(
+            value: cam.lens,
+            label: strings.lens,
+            onChanged: controller.setCameraLens,
+          ),
+          const SizedBox(height: 12),
+
+          // Тип кадру (теги)
+          Text(strings.shotType),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final type in kShotTypes)
+                _ShotTypeChip(
+                  label: type,
+                  selected: cam.shotTypes.contains(type),
+                  onTap: () => controller.toggleCameraShotType(type),
+                ),
+            ],
+          ),
+          const Divider(height: 24),
+
+          // Видошукач
+          Text(strings.viewfinder),
+          const SizedBox(height: 4),
+          _RadioGroup<ViewfinderType>(
+            value: cam.viewfinder,
+            options: [
+              (ViewfinderType.none, strings.viewfinderNone),
+              (ViewfinderType.small, strings.viewfinderSmall),
+              (ViewfinderType.big, strings.viewfinderBig),
+            ],
+            onChanged: controller.setCameraViewfinder,
+          ),
+          const SizedBox(height: 12),
+
+          // Навушники
+          Text(strings.headphones),
+          const SizedBox(height: 4),
+          _RadioGroup<HeadphonesType>(
+            value: cam.headphones,
+            options: [
+              (HeadphonesType.none, strings.headphonesNone),
+              (HeadphonesType.single, strings.headphonesSingle),
+              (HeadphonesType.double_, strings.headphonesDouble),
+            ],
+            onChanged: controller.setCameraHeadphones,
+          ),
+          const Divider(height: 24),
+
+          // Штатив
+          Row(children: [
+            Checkbox(
+              value: cam.tripod,
+              onChanged: (v) => controller.setCameraTripod(v ?? false),
+            ),
+            Expanded(child: Text(strings.tripod)),
+          ]),
+          if (cam.tripod) ...[
+            const SizedBox(height: 4),
+            _LiveTextField(
+              value: cam.tripodDescription,
+              label: strings.tripodDescription,
+              onChanged: controller.setCameraTripodDescription,
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // Колеса
+          Row(children: [
+            Checkbox(
+              value: cam.wheels,
+              onChanged: (v) => controller.setCameraWheels(v ?? false),
+            ),
+            Expanded(child: Text(strings.wheels)),
+          ]),
+
+          // Подіум
+          Row(children: [
+            Checkbox(
+              value: cam.podium,
+              onChanged: (v) => controller.setCameraPodium(v ?? false),
+            ),
+            Expanded(child: Text(strings.podium)),
+          ]),
+          if (cam.podium) ...[
+            const SizedBox(height: 4),
+            _LiveTextField(
+              value: cam.podiumDescription,
+              label: strings.podiumDescription,
+              onChanged: controller.setCameraPodiumDescription,
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          const Divider(height: 24),
+
+          // Опис
+          _LiveTextField(
+            value: cam.description,
+            label: strings.description,
+            onChanged: controller.setCameraDescription,
+          ),
+          const SizedBox(height: 12),
+
+          const Divider(height: 24),
+          // Кут обертання
+          Text(strings.rotationAngle),
+          const SizedBox(height: 4),
+          _RotationField(
+            degrees: item.rotation * 180 / math.pi,
+            onSubmit: controller.setRotationDegrees,
+          ),
+          const SizedBox(height: 12),
+
+          // Заблоковано
+          Row(children: [
+            Checkbox(
+              value: item.locked,
+              onChanged: (v) => controller.setLocked(v ?? false),
+            ),
+            Expanded(child: Text(strings.locked)),
+          ]),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: controller.deleteSelected,
+            icon: const Icon(Icons.delete_outline),
+            label: Text(strings.delete),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---- Панель мітки камери ----
+class _CameraLabelPanel extends StatelessWidget {
+  final EditorController controller;
+  final DrawnItem label;
+  final DrawnItem camera;
+  const _CameraLabelPanel({
+    required this.controller,
+    required this.label,
+    required this.camera,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(strings.cameraLabelItem,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 8),
+          Text('${strings.cameraNumber}: ${label.text ?? ""}',
+              style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 12),
+
+          // Форматування тексту
+          Text('${strings.fontSizeLabel}: ${label.fontSize.toStringAsFixed(0)}'),
+          Slider(
+            value: label.fontSize.clamp(8, 96),
+            min: 8, max: 96,
+            onChanged: controller.setCameraLabelFontSize,
+          ),
+          const SizedBox(height: 8),
+          Text(strings.colorLabel),
+          const SizedBox(height: 4),
+          _ColorRow(
+            selected: label.strokeColor,
+            onPick: (c) => controller.setStrokeColor(c!),
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            _toggleButton(Icons.format_bold, label.bold,
+                () => controller.setCameraLabelBold(!label.bold)),
+            _toggleButton(Icons.format_italic, label.italic,
+                () => controller.setCameraLabelItalic(!label.italic)),
+          ]),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: controller.selectParentCamera,
+            icon: const Icon(Icons.videocam),
+            label: Text(strings.goToCamera),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleButton(IconData icon, bool active, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: active ? Colors.blue : Colors.white,
+            border: Border.all(color: Colors.black26),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(icon, size: 20, color: active ? Colors.white : Colors.black87),
+        ),
+      ),
+    );
+  }
+}
+
+// ---- Числове поле для номера камери ----
+class _CameraNumberField extends StatefulWidget {
+  final int number;
+  final ValueChanged<int> onSubmit;
+  const _CameraNumberField({required this.number, required this.onSubmit});
+  @override
+  State<_CameraNumberField> createState() => _CameraNumberFieldState();
+}
+
+class _CameraNumberFieldState extends State<_CameraNumberField> {
+  late final TextEditingController _c;
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _c = TextEditingController(text: widget.number.toString());
+  }
+
+  @override
+  void didUpdateWidget(covariant _CameraNumberField old) {
+    super.didUpdateWidget(old);
+    if (!_focus.hasFocus && widget.number != old.number) {
+      _c.text = widget.number.toString();
+    }
+  }
+
+  void _apply() {
+    final v = int.tryParse(_c.text.trim());
+    if (v != null && v >= 1) {
+      widget.onSubmit(v);
+    } else {
+      _c.text = widget.number.toString();
+    }
+  }
+
+  @override
+  void dispose() { _c.dispose(); _focus.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 80,
+        child: TextField(
+          controller: _c,
+          focusNode: _focus,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+          onSubmitted: (_) => _apply(),
+          onTapOutside: (_) { if (_focus.hasFocus) { _focus.unfocus(); _apply(); } },
+        ),
+      );
+}
+
+// ---- Тег типу кадру ----
+class _ShotTypeChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ShotTypeChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? Colors.blue : Colors.transparent,
+            border: Border.all(color: selected ? Colors.blue : Colors.black38),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: selected ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      );
+}
+
+// ---- Radio-група для enum ----
+class _RadioGroup<T> extends StatelessWidget {
+  final T value;
+  final List<(T, String)> options;
+  final ValueChanged<T> onChanged;
+  const _RadioGroup({required this.value, required this.options, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          for (final (opt, label) in options)
+            Row(children: [
+              // ignore: deprecated_member_use
+              Radio<T>(
+                value: opt,
+                // ignore: deprecated_member_use
+                groupValue: value,
+                // ignore: deprecated_member_use
+                onChanged: (v) { if (v != null) onChanged(v); },
+              ),
+              Expanded(child: GestureDetector(
+                onTap: () => onChanged(opt),
+                child: Text(label),
+              )),
+            ]),
+        ],
+      );
 }

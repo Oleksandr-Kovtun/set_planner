@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'models.dart';
 import 'models/settings.dart';
 
+export 'models/settings.dart' show CameraNumberStyle, CameraInfoField;
+
 enum _Interaction { none, drawing, moving, resizing, rotating, marquee }
 
 class EditorController extends ChangeNotifier {
@@ -65,6 +67,9 @@ class EditorController extends ChangeNotifier {
   Offset? _polylineCursorPos;
   int _nextGroupId = 1;
 
+  // Поточний розмір камери — змінюється при ресайзі і застосовується до всіх камер
+  Size _cameraSize = const Size(72, 78);
+
   bool get isPolylineBuilding => _currentTool == Tool.polyline && _activeItem != null;
   Offset? get polylineCursorPos => _polylineCursorPos;
   DrawnItem? get activePolyline => isPolylineBuilding ? _activeItem : null;
@@ -98,6 +103,285 @@ class EditorController extends ChangeNotifier {
     _currentTool = tool;
     if (tool != Tool.select && tool != Tool.lasso) _selection.clear();
     notifyListeners();
+  }
+
+  // ---- Камери ----
+  int _nextCameraNumber() {
+    final existing = <int>{};
+    for (final item in _items) {
+      if (item.cameraData != null) existing.add(item.cameraData!.number);
+    }
+    int n = 1;
+    while (existing.contains(n)) { n++; }
+    return n;
+  }
+
+  String _cameraLabel(int num) {
+    if (_settings.cameraNumberStyle == CameraNumberStyle.alphabetic) {
+      if (num >= 1 && num <= 26) {
+        return String.fromCharCode('A'.codeUnitAt(0) + num - 1);
+      }
+    }
+    return num.toString();
+  }
+
+  void _updateCameraLabel(DrawnItem cam) {
+    final label = _cameraLabel(cam.cameraData!.number);
+    for (final item in _items) {
+      if (item.tool == Tool.text && item.boundToId == cam.id) {
+        item.text = label;
+        _remeasureText(item);
+        break;
+      }
+    }
+  }
+
+  void _repositionCameraLabel(DrawnItem cam) {
+    const gap = 4.0;
+    final cb = cam.bounds;
+    for (final item in _items) {
+      if (item.tool != Tool.text || item.boundToId != cam.id) continue;
+      final lw = item.bounds.width;
+      final lh = item.bounds.height;
+      final cx = cb.center.dx;
+      final labelCY = cb.top - gap - lh / 2;
+      item.points[0] = Offset(cx - lw / 2, labelCY - lh / 2);
+      item.points[1] = Offset(cx + lw / 2, labelCY + lh / 2);
+      break;
+    }
+  }
+
+  void _syncAllCamerasToSize({int? excludeId}) {
+    for (final cam in _items) {
+      if (cam.tool != Tool.camera) continue;
+      if (excludeId == null || cam.id != excludeId) {
+        final center = cam.bounds.center;
+        final hw = _cameraSize.width / 2;
+        final hh = _cameraSize.height / 2;
+        cam.points[0] = Offset(center.dx - hw, center.dy - hh);
+        cam.points[1] = Offset(center.dx + hw, center.dy + hh);
+      }
+      _repositionCameraLabel(cam);
+    }
+  }
+
+  bool _isCameraLabel(DrawnItem item) {
+    if (item.tool != Tool.text || item.boundToId == null) return false;
+    return _items.any((e) => e.id == item.boundToId && e.tool == Tool.camera);
+  }
+
+  DrawnItem? parentCamera(DrawnItem textItem) {
+    if (textItem.boundToId == null) return null;
+    for (final it in _items) {
+      if (it.id == textItem.boundToId && it.tool == Tool.camera) return it;
+    }
+    return null;
+  }
+
+  void _addCamera(Offset canvasP) {
+    final double w = _cameraSize.width, h = _cameraSize.height;
+    final snapped = _snapToGrid(canvasP);
+    final tl = Offset(snapped.dx - w / 2, snapped.dy - h / 2);
+    final br = Offset(snapped.dx + w / 2, snapped.dy + h / 2);
+    final num = _nextCameraNumber();
+    _pushUndo();
+
+    final cam = DrawnItem(
+      Tool.camera,
+      [tl, br],
+      band: LayerBand.camera,
+      strokeColor: const Color(0xFF000000),
+      fillColor: const Color(0xFF455A64),
+      lockAspect: true,
+      cameraData: CameraData(number: num),
+    );
+    _insertByBand(cam);
+
+    // Label starts centred at snapped, then moved above the camera body
+    final label = _cameraLabel(num);
+    final textItem = DrawnItem(
+      Tool.text,
+      [snapped, snapped],
+      text: label,
+      boundToId: cam.id,
+      band: LayerBand.camera,
+      bold: true,
+      fontSize: 30,
+      strokeColor: const Color(0xFF000000),
+    );
+    _remeasureText(textItem);
+
+    // Position label centred above camera (4 px gap)
+    const gap = 4.0;
+    final lw = textItem.bounds.width;
+    final lh = textItem.bounds.height;
+    final labelCY = tl.dy - gap - lh / 2;
+    textItem.points[0] = Offset(snapped.dx - lw / 2, labelCY - lh / 2);
+    textItem.points[1] = Offset(snapped.dx + lw / 2, labelCY + lh / 2);
+
+    _insertByBand(textItem);
+
+    _setSelection({_items.indexOf(cam)});
+    // Stay in camera mode for continuous placement
+    notifyListeners();
+  }
+
+  void setCameraNumber(int newNum) {
+    final it = selectedItem;
+    if (it == null || it.cameraData == null || it.locked || newNum < 1) return;
+    final oldNum = it.cameraData!.number;
+    if (oldNum == newNum) return;
+    _pushUndo();
+    for (final item in _items) {
+      if (item != it && item.cameraData?.number == newNum) {
+        item.cameraData!.number = oldNum;
+        _updateCameraLabel(item);
+        break;
+      }
+    }
+    it.cameraData!.number = newNum;
+    _updateCameraLabel(it);
+    notifyListeners();
+  }
+
+  void setShowCameraNumber(bool show) {
+    final it = selectedItem;
+    if (it == null || it.cameraData == null || it.locked) return;
+    _pushUndo();
+    it.cameraData!.showNumber = show;
+    for (final item in _items) {
+      if (item.tool == Tool.text && item.boundToId == it.id) {
+        item.visible = show;
+        break;
+      }
+    }
+    notifyListeners();
+  }
+
+  void setCameraModel(String v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    it.cameraData!.cameraModel = v;
+    notifyListeners();
+  }
+
+  void toggleCameraShotType(String type) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    final types = it.cameraData!.shotTypes;
+    if (types.contains(type)) {
+      types.remove(type);
+    } else {
+      types.add(type);
+    }
+    notifyListeners();
+  }
+
+  void setCameraLens(String v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    it.cameraData!.lens = v;
+    notifyListeners();
+  }
+
+  void setCameraViewfinder(ViewfinderType v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    _pushUndo();
+    it.cameraData!.viewfinder = v;
+    notifyListeners();
+  }
+
+  void setCameraHeadphones(HeadphonesType v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    _pushUndo();
+    it.cameraData!.headphones = v;
+    notifyListeners();
+  }
+
+  void setCameraTripod(bool v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    _pushUndo();
+    it.cameraData!.tripod = v;
+    notifyListeners();
+  }
+
+  void setCameraTripodDescription(String v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    it.cameraData!.tripodDescription = v;
+    notifyListeners();
+  }
+
+  void setCameraWheels(bool v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    _pushUndo();
+    it.cameraData!.wheels = v;
+    notifyListeners();
+  }
+
+  void setCameraPodium(bool v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    _pushUndo();
+    it.cameraData!.podium = v;
+    notifyListeners();
+  }
+
+  void setCameraPodiumDescription(String v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    it.cameraData!.podiumDescription = v;
+    notifyListeners();
+  }
+
+  void setCameraDescription(String v) {
+    final it = selectedItem;
+    if (it?.cameraData == null || it!.locked) return;
+    it.cameraData!.description = v;
+    notifyListeners();
+  }
+
+  // Встановити bold/italic на мітці камери (виклик з панелі мітки)
+  void setCameraLabelBold(bool v) {
+    final it = selectedItem;
+    if (it == null || it.tool != Tool.text || !_isCameraLabel(it)) return;
+    _pushUndo();
+    it.bold = v;
+    _remeasureText(it);
+    notifyListeners();
+  }
+
+  void setCameraLabelItalic(bool v) {
+    final it = selectedItem;
+    if (it == null || it.tool != Tool.text || !_isCameraLabel(it)) return;
+    _pushUndo();
+    it.italic = v;
+    _remeasureText(it);
+    notifyListeners();
+  }
+
+  void setCameraLabelFontSize(double v) {
+    final it = selectedItem;
+    if (it == null || it.tool != Tool.text || !_isCameraLabel(it)) return;
+    it.fontSize = v;
+    _remeasureText(it);
+    notifyListeners();
+  }
+
+  void selectParentCamera() {
+    final it = selectedItem;
+    if (it == null || it.tool != Tool.text) return;
+    for (int i = 0; i < _items.length; i++) {
+      if (_items[i].id == it.boundToId && _items[i].tool == Tool.camera) {
+        _setSelection({i});
+        notifyListeners();
+        return;
+      }
+    }
   }
 
   bool get _additivePressed =>
@@ -369,6 +653,10 @@ class EditorController extends ChangeNotifier {
       _addFreeText(_screenToCanvas(screenP));
       return;
     }
+    if (_currentTool == Tool.camera) {
+      _addCamera(_screenToCanvas(screenP));
+      return;
+    }
     if (_currentTool == Tool.polyline) {
       _handlePolylineTap(_screenToCanvas(screenP));
       return;
@@ -409,6 +697,8 @@ class EditorController extends ChangeNotifier {
       _handleSelectStart(p);
     } else if (_currentTool == Tool.text) {
       // text creation on tap (onTap)
+    } else if (_currentTool == Tool.camera) {
+      // camera placement on tap (onTap)
     } else if (_currentTool == Tool.polyline) {
       // polyline points are added on tap (onTap), not on pan start
     } else {
@@ -482,6 +772,15 @@ class EditorController extends ChangeNotifier {
         }
       }
       notifyListeners();
+    }
+    if (wasResizing && _selection.length == 1) {
+      final sel = _items[_selection.first];
+      if (sel.tool == Tool.camera) {
+        final b = sel.bounds;
+        _cameraSize = Size(b.width.abs(), b.height.abs());
+        _syncAllCamerasToSize(excludeId: sel.id);
+        notifyListeners();
+      }
     }
     // Keep _activeItem alive while building a polyline; it is managed by taps.
     if (!isPolylineBuilding) _activeItem = null;
@@ -1271,13 +1570,23 @@ class EditorController extends ChangeNotifier {
   void deleteSelected() {
     if (_selection.isEmpty) return;
     _editingTextId = null;
-    final idx = [for (final i in _selection) if (!_items[i].locked) i]
-      ..sort((a, b) => b.compareTo(a));
+    // Camera labels cannot be deleted directly — only via their parent camera
+    final idx = [
+      for (final i in _selection)
+      if (!_items[i].locked && !_isCameraLabel(_items[i])) i
+    ]..sort((a, b) => b.compareTo(a));
     if (idx.isEmpty) return;
     _pushUndo();
+    // Collect IDs of items being deleted to cascade-remove camera labels
+    final deletedIds = {for (final i in idx) _items[i].id};
     for (final i in idx) {
       _items.removeAt(i);
     }
+    // Remove camera labels bound to deleted cameras
+    _items.removeWhere((item) =>
+        item.tool == Tool.text &&
+        item.boundToId != null &&
+        deletedIds.contains(item.boundToId));
     _selection.clear();
     notifyListeners();
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/settings.dart';
+import '../l10n/app_strings.dart';
 
 class SettingsDialog extends StatefulWidget {
   final AppSettings initialSettings;
@@ -49,6 +50,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
               _buildGridToggle(),
               const SizedBox(height: 12),
               _buildSnapToGridToggle(),
+              const Divider(height: 32),
+              // Камери
+              _buildSectionTitle('Камери'),
+              const SizedBox(height: 12),
+              _buildCameraNumberStyle(),
+              const SizedBox(height: 16),
+              _buildCameraInfoDisplay(),
               const Divider(height: 32),
               // Інтерфейс
               _buildSectionTitle('Інтерфейс'),
@@ -161,6 +169,67 @@ class _SettingsDialogState extends State<SettingsDialog> {
             setState(() => settings.showGrid = value);
           },
         ),
+      ],
+    );
+  }
+
+  Widget _buildCameraNumberStyle() {
+    return DropdownButtonFormField<CameraNumberStyle>(
+      initialValue: settings.cameraNumberStyle,
+      decoration: InputDecoration(
+        labelText: 'Нумерація камер',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        isDense: true,
+      ),
+      items: const [
+        DropdownMenuItem(value: CameraNumberStyle.numeric, child: Text('1, 2, 3...')),
+        DropdownMenuItem(value: CameraNumberStyle.alphabetic, child: Text('A, B, C...')),
+      ],
+      onChanged: (v) {
+        if (v != null) setState(() => settings.cameraNumberStyle = v);
+      },
+    );
+  }
+
+  Widget _buildCameraInfoDisplay() {
+    final fields = [
+      (CameraInfoField.cameraModel, strings.cameraModel),
+      (CameraInfoField.shotTypes,   strings.shotType),
+      (CameraInfoField.lens,        strings.lens),
+      (CameraInfoField.viewfinder,  strings.viewfinder),
+      (CameraInfoField.headphones,  strings.headphones),
+      (CameraInfoField.tripod,      strings.tripod),
+      (CameraInfoField.wheels,      strings.wheels),
+      (CameraInfoField.podium,      strings.podium),
+      (CameraInfoField.description, strings.description),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.cameraInfoDisplay,
+          style: const TextStyle(fontSize: 13, color: Colors.black87),
+        ),
+        const SizedBox(height: 4),
+        ...fields.map((entry) {
+          final (field, label) = entry;
+          final checked = settings.cameraInfoFields.contains(field);
+          return CheckboxListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: Text(label),
+            value: checked,
+            onChanged: (v) {
+              setState(() {
+                if (v == true) {
+                  settings.cameraInfoFields.add(field);
+                } else {
+                  settings.cameraInfoFields.remove(field);
+                }
+              });
+            },
+          );
+        }),
       ],
     );
   }

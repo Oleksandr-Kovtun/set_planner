@@ -4,6 +4,10 @@ enum PaperSize { a5, a4, a3, a2 }
 
 enum PaperOrientation { portrait, landscape }
 
+enum CameraNumberStyle { numeric, alphabetic }
+
+enum CameraInfoField { cameraModel, shotTypes, lens, viewfinder, headphones, tripod, wheels, podium, description }
+
 extension PaperSizeExt on PaperSize {
   String get displayName {
     switch (this) {
@@ -51,6 +55,10 @@ class AppSettings {
   // Інтерфейс
   Color primaryColor; // основний колір UI
 
+  // Камери
+  CameraNumberStyle cameraNumberStyle;
+  Set<CameraInfoField> cameraInfoFields;
+
   AppSettings({
     this.paperSize = PaperSize.a4,
     this.paperOrientation = PaperOrientation.landscape,
@@ -58,7 +66,9 @@ class AppSettings {
     this.showGrid = true,
     this.snapToGrid = true,
     this.primaryColor = Colors.blue,
-  });
+    this.cameraNumberStyle = CameraNumberStyle.numeric,
+    Set<CameraInfoField>? cameraInfoFields,
+  }) : cameraInfoFields = cameraInfoFields ?? {};
 
   AppSettings copy({
     PaperSize? paperSize,
@@ -67,6 +77,8 @@ class AppSettings {
     bool? showGrid,
     bool? snapToGrid,
     Color? primaryColor,
+    CameraNumberStyle? cameraNumberStyle,
+    Set<CameraInfoField>? cameraInfoFields,
   }) {
     return AppSettings(
       paperSize: paperSize ?? this.paperSize,
@@ -75,6 +87,8 @@ class AppSettings {
       showGrid: showGrid ?? this.showGrid,
       snapToGrid: snapToGrid ?? this.snapToGrid,
       primaryColor: primaryColor ?? this.primaryColor,
+      cameraNumberStyle: cameraNumberStyle ?? this.cameraNumberStyle,
+      cameraInfoFields: cameraInfoFields ?? Set.of(this.cameraInfoFields),
     );
   }
 }

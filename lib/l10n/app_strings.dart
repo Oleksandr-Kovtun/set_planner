@@ -25,6 +25,17 @@ class AppStrings {
   final String locked, lockedHint;
   final String convertToCurve;
   final String arrowHeadStart, arrowHeadEnd;
+  // камери
+  final String toolCamera;
+  final String cameraNumber, showNumber, cameraModel, shotType, lens;
+  final String viewfinder, viewfinderNone, viewfinderSmall, viewfinderBig;
+  final String headphones, headphonesNone, headphonesSingle, headphonesDouble;
+  final String tripod, tripodDescription, wheels, podium, podiumDescription;
+  final String cameraLabelItem, goToCamera;
+  final String cameraNumberStyle, cameraNumberNumeric, cameraNumberAlphabetic;
+  final String cameraColor, description;
+  final String yes;
+  final String cameraInfoDisplay;
 
   const AppStrings({
     required this.appTitle,
@@ -96,6 +107,34 @@ class AppStrings {
     required this.arrowHeadStart,
     required this.arrowHeadEnd,
     required this.opacity,
+    required this.toolCamera,
+    required this.cameraNumber,
+    required this.showNumber,
+    required this.cameraModel,
+    required this.shotType,
+    required this.lens,
+    required this.viewfinder,
+    required this.viewfinderNone,
+    required this.viewfinderSmall,
+    required this.viewfinderBig,
+    required this.headphones,
+    required this.headphonesNone,
+    required this.headphonesSingle,
+    required this.headphonesDouble,
+    required this.tripod,
+    required this.tripodDescription,
+    required this.wheels,
+    required this.podium,
+    required this.podiumDescription,
+    required this.cameraLabelItem,
+    required this.goToCamera,
+    required this.cameraNumberStyle,
+    required this.cameraNumberNumeric,
+    required this.cameraNumberAlphabetic,
+    required this.cameraColor,
+    required this.description,
+    required this.yes,
+    required this.cameraInfoDisplay,
   });
 
   // Назва фігури за інструментом.
@@ -115,6 +154,7 @@ class AppStrings {
       case Tool.lasso: return selectMode;
       case Tool.text: return textTool;
       case Tool.image: return imageTool;
+      case Tool.camera: return toolCamera;
     }
   }
 
@@ -189,6 +229,34 @@ class AppStrings {
     convertToCurve: 'Спростити криву',
     arrowHeadStart: 'Вістря на початку',
     arrowHeadEnd: 'Вістря в кінці',
+    toolCamera: 'Камера',
+    cameraNumber: 'Номер камери',
+    showNumber: 'Показувати номер',
+    cameraModel: 'Модель камери',
+    shotType: 'Тип кадру',
+    lens: 'Об\'єктив',
+    viewfinder: 'Видошукач',
+    viewfinderNone: 'Немає',
+    viewfinderSmall: 'Малий',
+    viewfinderBig: 'Великий',
+    headphones: 'Навушники',
+    headphonesNone: 'Немає',
+    headphonesSingle: 'Одні',
+    headphonesDouble: 'Подвійні',
+    tripod: 'Штатив',
+    tripodDescription: 'Опис штатива',
+    wheels: 'Колеса',
+    podium: 'Подіум',
+    podiumDescription: 'Опис подіуму',
+    cameraLabelItem: 'Мітка номера камери',
+    goToCamera: 'Перейти до камери',
+    cameraNumberStyle: 'Нумерація камер',
+    cameraNumberNumeric: '1, 2, 3...',
+    cameraNumberAlphabetic: 'A, B, C...',
+    cameraColor: 'Колір камери',
+    description: 'Опис',
+    yes: 'Так',
+    cameraInfoDisplay: 'Відображення властивостей камери',
   );
 
   // ===== English =====
@@ -262,6 +330,34 @@ class AppStrings {
     convertToCurve: 'Simplify curve',
     arrowHeadStart: 'Head at start',
     arrowHeadEnd: 'Head at end',
+    toolCamera: 'Camera',
+    cameraNumber: 'Camera Number',
+    showNumber: 'Show Number',
+    cameraModel: 'Camera Model',
+    shotType: 'Shot Type',
+    lens: 'Lens',
+    viewfinder: 'Viewfinder',
+    viewfinderNone: 'None',
+    viewfinderSmall: 'Small',
+    viewfinderBig: 'Big',
+    headphones: 'Headphones',
+    headphonesNone: 'None',
+    headphonesSingle: 'Single',
+    headphonesDouble: 'Double',
+    tripod: 'Tripod',
+    tripodDescription: 'Tripod Description',
+    wheels: 'Wheels',
+    podium: 'Podium',
+    podiumDescription: 'Podium Description',
+    cameraLabelItem: 'Camera Number Label',
+    goToCamera: 'Go to Camera',
+    cameraNumberStyle: 'Camera Numbering',
+    cameraNumberNumeric: '1, 2, 3...',
+    cameraNumberAlphabetic: 'A, B, C...',
+    cameraColor: 'Camera Color',
+    description: 'Description',
+    yes: 'Yes',
+    cameraInfoDisplay: 'Camera info on canvas',
   );
 
   static AppStrings of(String languageCode) {
