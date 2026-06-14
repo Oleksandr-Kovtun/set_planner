@@ -429,6 +429,7 @@ class EditorController extends ChangeNotifier {
 
     final wasDrawing = _interaction == _Interaction.drawing;
     final wasMoving = _interaction == _Interaction.moving;
+    final wasResizing = _interaction == _Interaction.resizing;
     final item = _activeItem;
     if (wasDrawing && item != null) {
       bool removed = false;
@@ -445,8 +446,8 @@ class EditorController extends ChangeNotifier {
         _currentTool = Tool.select; // після малювання — у режим вибору
       }
       notifyListeners();
-    } else if (wasMoving && _settings.snapToGrid) {
-      // Привязуємо всі переміщені елементи до сітки
+    } else if ((wasMoving || wasResizing) && _settings.snapToGrid) {
+      // Привязуємо всі відредаговані елементи до сітки тільки при відпусканні
       for (final i in _selection) {
         if (!_items[i].locked) {
           for (int k = 0; k < _items[i].points.length; k++) {
@@ -1103,6 +1104,82 @@ class EditorController extends ChangeNotifier {
     final it = selectedItem;
     if (it == null || it.tool != Tool.text) return;
     _pushUndo(); it.textAlign = a; notifyListeners();
+  }
+
+  // ---- Об'єднання ліній ----
+  bool _isJoinableLine(Tool tool) =>
+      tool == Tool.line || tool == Tool.arrow || tool == Tool.pen;
+
+  bool _pointsEqual(Offset a, Offset b, {double tolerance = 1e-6}) =>
+      (a.dx - b.dx).abs() < tolerance && (a.dy - b.dy).abs() < tolerance;
+
+  bool get canJoinLines {
+    if (_selection.length != 2) return false;
+    final idx = _selection.toList();
+    final item1 = _items[idx[0]];
+    final item2 = _items[idx[1]];
+    
+    if (!_isJoinableLine(item1.tool) || !_isJoinableLine(item2.tool)) {
+      return false;
+    }
+    
+    if (item1.points.length < 2 || item2.points.length < 2) return false;
+    
+    // Перевіряємо чи кінці ліній совпадають хоча б з однієї сторони
+    final p1Start = item1.points.first;
+    final p1End = item1.points.last;
+    final p2Start = item2.points.first;
+    final p2End = item2.points.last;
+    
+    return _pointsEqual(p1Start, p2Start) ||
+        _pointsEqual(p1Start, p2End) ||
+        _pointsEqual(p1End, p2Start) ||
+        _pointsEqual(p1End, p2End);
+  }
+
+  void joinSelectedLines() {
+    if (!canJoinLines) return;
+    
+    final idx = _selection.toList();
+    final i1 = idx[0], i2 = idx[1];
+    final item1 = _items[i1];
+    final item2 = _items[i2];
+    
+    _pushUndo();
+    
+    final p1Start = item1.points.first;
+    final p1End = item1.points.last;
+    final p2Start = item2.points.first;
+    final p2End = item2.points.last;
+    
+    // Визначаємо як об'єднувати
+    if (_pointsEqual(p1End, p2Start)) {
+      // Кінець першої = початок другої: просто додаємо другу до першої
+      item1.points.addAll(item2.points.skip(1));
+    } else if (_pointsEqual(p1End, p2End)) {
+      // Кінець першої = кінець другої: розвертаємо другу
+      item1.points.addAll(item2.points.reversed.skip(1));
+    } else if (_pointsEqual(p1Start, p2End)) {
+      // Початок першої = кінець другої: розвертаємо першу
+      item1.points.insertAll(0, item2.points.reversed.skip(1));
+    } else if (_pointsEqual(p1Start, p2Start)) {
+      // Початок першої = початок другої: розвертаємо другу
+      item1.points.insertAll(0, item2.points.reversed.skip(1));
+    }
+    
+    // Якщо хоча б одна лінія була кривою, результат - крива
+    if (item2.smoothed) {
+      item1.smoothed = true;
+    }
+    
+    // Видаляємо другу лінію (з більшим індексом, щоб не зсунути індекси)
+    final removeIdx = i1 > i2 ? i1 : i2;
+    final remainIdx = i1 > i2 ? i2 : i1;
+    
+    _items.removeAt(removeIdx);
+    _setSelection({remainIdx});
+    
+    notifyListeners();
   }
 
   // ---- Видалення вибраних елементів ----

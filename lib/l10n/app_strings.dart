@@ -7,7 +7,7 @@ class AppStrings {
   // панель інструментів
   final String cursorMode, freeDraw, shapes, cameras, actors,
       camerasComingSoon, actorsComingSoon, clearAll, importSvg, svgImportError,
-      selectMode, group, ungroup, selectionMultiple;
+      selectMode, group, ungroup, join, joinLines, selectionMultiple;
   // діалог очищення
   final String clearTitle, clearMessage, cancel, clear;
   // панель властивостей
@@ -74,6 +74,8 @@ class AppStrings {
     required this.selectMode,
     required this.group,
     required this.ungroup,
+    required this.join,
+    required this.joinLines,
     required this.selectionMultiple,
     required this.textTool,
     required this.textContent,
@@ -138,6 +140,8 @@ class AppStrings {
     selectMode: 'Вибір (рамкою)',
     group: 'Обʼєднати в групу',
     ungroup: 'Розгрупувати',
+    join: 'Об\'єднати',
+    joinLines: 'Об\'єднати лінії',
     selectionMultiple: 'Вибрано елементів',
     clearTitle: 'Очистити полотно?',
     clearMessage: 'Усі елементи буде видалено. Це можна повернути кнопкою undo угорі.',
@@ -208,6 +212,8 @@ class AppStrings {
     selectMode: 'Select (marquee)',
     group: 'Group',
     ungroup: 'Ungroup',
+    join: 'Join',
+    joinLines: 'Join lines',
     selectionMultiple: 'Selected items',
     clearTitle: 'Clear the canvas?',
     clearMessage: 'All elements will be removed. You can undo this with the undo button at the top.',

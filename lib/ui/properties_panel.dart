@@ -79,6 +79,13 @@ class PropertiesPanel extends StatelessWidget {
               icon: const Icon(Icons.join_full),
               label: Text(strings.group),
             ),
+          const SizedBox(height: 8),
+          if (controller.canJoinLines)
+            FilledButton.icon(
+              onPressed: controller.joinSelectedLines,
+              icon: const Icon(Icons.call_received_sharp),
+              label: Text(strings.joinLines),
+            ),
           _lockRow(controller.selectedItems.every((e) => e.locked)),  
           const SizedBox(height: 8),
           FilledButton.icon(
