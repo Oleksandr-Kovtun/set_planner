@@ -55,6 +55,7 @@ class AppStrings {
   final String showGrid, snapToGrid;
   final String primaryColor, pickColor, select;
   final String openProject, saveAsProject, saveError, openError, saveToFilesHint, exportError;
+  final String exportPdf, pdfColViewfinder, pdfColHeadphones;
 
   const AppStrings({
     required this.appTitle,
@@ -190,6 +191,9 @@ class AppStrings {
     required this.openError,
     required this.saveToFilesHint,
     required this.exportError,
+    required this.exportPdf,
+    required this.pdfColViewfinder,
+    required this.pdfColHeadphones,
   });
 
   // Назва фігури за інструментом.
@@ -358,6 +362,9 @@ class AppStrings {
     openError: 'Помилка відкриття файлу',
     saveToFilesHint: 'Файл буде збережено у програмі «Файли» → Set Planner',
     exportError: 'Помилка експорту',
+    exportPdf: 'Зберегти як PDF',
+    pdfColViewfinder: 'VF',
+    pdfColHeadphones: 'Headset',
   );
 
   // ===== English =====
@@ -495,6 +502,9 @@ class AppStrings {
     openError: 'Failed to open file',
     saveToFilesHint: 'File will be saved in Files app → Set Planner',
     exportError: 'Export error',
+    exportPdf: 'Save as PDF',
+    pdfColViewfinder: 'VF',
+    pdfColHeadphones: 'Headset',
   );
 
   static AppStrings of(String languageCode) {

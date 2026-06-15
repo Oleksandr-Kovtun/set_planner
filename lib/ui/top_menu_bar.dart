@@ -5,10 +5,14 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import '../drawing_painter.dart';
 import '../editor_controller.dart';
 import '../l10n/app_strings.dart';
+import '../models.dart';
 import '../models/settings.dart';
 import '../project_io.dart';
 import 'settings_dialog.dart';
@@ -92,6 +96,12 @@ class _TopMenuBarState extends State<TopMenuBar> {
             tooltip: strings.exportImage,
             onPressed: _exportImage,
             icon: const Icon(Icons.image_outlined),
+            color: Colors.white,
+          ),
+          IconButton(
+            tooltip: strings.exportPdf,
+            onPressed: _exportPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined),
             color: Colors.white,
           ),
           const Spacer(),
@@ -370,6 +380,154 @@ class _TopMenuBarState extends State<TopMenuBar> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(path), duration: const Duration(seconds: 2)),
           );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${strings.exportError}: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // ── PDF export ────────────────────────────────────────────────────────────
+
+  Future<void> _exportPdf() async {
+    final cameras = controller.items
+        .where((it) => it.tool == Tool.camera)
+        .toList()
+      ..sort((a, b) =>
+          (a.cameraData?.number ?? 0).compareTo(b.cameraData?.number ?? 0));
+
+    if (cameras.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(strings.noCameras),
+              duration: const Duration(seconds: 2)));
+      }
+      return;
+    }
+
+    try {
+      final regular = await PdfGoogleFonts.robotoRegular();
+      final bold = await PdfGoogleFonts.robotoBold();
+
+      final doc = pw.Document(
+        theme: pw.ThemeData.withFont(base: regular, bold: bold),
+      );
+
+      final headers = [
+        '#',
+        strings.cameraModel,
+        strings.lens,
+        strings.pdfColViewfinder,
+        strings.pdfColHeadphones,
+        strings.tripod,
+        strings.wheels,
+        strings.podium,
+        strings.description,
+      ];
+
+      String vfCell(CameraData cd) => switch (cd.viewfinder) {
+            ViewfinderType.none => '—',
+            ViewfinderType.small => strings.viewfinderSmall,
+            ViewfinderType.big => strings.viewfinderBig,
+          };
+
+      String hpCell(CameraData cd) => switch (cd.headphones) {
+            HeadphonesType.none => '—',
+            HeadphonesType.single => strings.headphonesSingle,
+            HeadphonesType.double_ => strings.headphonesDouble,
+          };
+
+      String boolCell(bool v, String desc) {
+        if (!v) return '—';
+        return desc.isNotEmpty ? '${strings.yes} ($desc)' : strings.yes;
+      }
+
+      final rows = cameras.map((cam) {
+        final cd = cam.cameraData!;
+        return [
+          '${cd.number}',
+          cd.cameraModel,
+          cd.lens,
+          vfCell(cd),
+          hpCell(cd),
+          boolCell(cd.tripod, cd.tripodDescription),
+          cd.wheels ? strings.yes : '—',
+          boolCell(cd.podium, cd.podiumDescription),
+          cd.description,
+        ];
+      }).toList();
+
+      // #455A64 (camera fill) as PDF colour components (0–1 range)
+      const headerBg = PdfColor(0.271, 0.353, 0.392);
+      const borderColor = PdfColor(0.690, 0.745, 0.773); // #B0BEC5
+
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4.landscape,
+          margin: const pw.EdgeInsets.all(24),
+          build: (ctx) => [
+            pw.TableHelper.fromTextArray(
+              headers: headers,
+              data: rows,
+              headerStyle: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 8,
+                color: PdfColors.white,
+              ),
+              cellStyle: const pw.TextStyle(fontSize: 8),
+              headerDecoration:
+                  const pw.BoxDecoration(color: headerBg),
+              headerAlignment: pw.Alignment.centerLeft,
+              cellAlignments: {0: pw.Alignment.center},
+              cellHeight: 22,
+              cellPadding: const pw.EdgeInsets.symmetric(
+                  horizontal: 4, vertical: 2),
+              columnWidths: {
+                0: const pw.FixedColumnWidth(20),   // #
+                1: const pw.FlexColumnWidth(2),      // model
+                2: const pw.FlexColumnWidth(2),      // lens
+                3: const pw.FlexColumnWidth(1),      // VF
+                4: const pw.FlexColumnWidth(1.5),    // Headset
+                5: const pw.FlexColumnWidth(2),      // tripod
+                6: const pw.FixedColumnWidth(44),    // wheels (no wrap)
+                7: const pw.FlexColumnWidth(2),      // podium
+                8: const pw.FlexColumnWidth(3),      // description
+              },
+              border: pw.TableBorder.all(
+                  color: borderColor, width: 0.5),
+            ),
+          ],
+        ),
+      );
+
+      final bytes = await doc.save();
+
+      if (Platform.isIOS || Platform.isAndroid) {
+        final tmp = await getTemporaryDirectory();
+        final file = File('${tmp.path}/cameras.pdf');
+        await file.writeAsBytes(bytes);
+        await Share.shareXFiles([
+          XFile(file.path,
+              name: 'cameras.pdf', mimeType: 'application/pdf'),
+        ]);
+      } else {
+        final path = await _showSaveAsDialog(
+            defaultName: 'cameras.pdf', extension: '.pdf');
+        if (path == null) return;
+        await File(path).writeAsBytes(bytes);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(path),
+                duration: const Duration(seconds: 2)));
         }
       }
     } catch (e) {

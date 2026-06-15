@@ -40,6 +40,11 @@ dependencies:
   path_provider: ^2.1.0
   share_plus: ^10.0.0
   image: ^4.3.0
+  pdf: ^3.11.0
+  printing: ^5.13.0
+
+dependency_overrides:
+  xml: ^7.0.1   # pdf requires xml ^6, but xml 7 is API-compatible for the features pdf uses
 
 dev_dependencies:
   flutter_test:
