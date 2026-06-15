@@ -85,7 +85,7 @@ class DrawingPainter extends CustomPainter {
   void _withRotation(Canvas canvas, DrawnItem item, VoidCallback draw) {
     final rotate = item.rotation != 0 && item.points.length >= 2;
     if (rotate) {
-      final c = item.bounds.center;
+      final c = _rotationPivot(item);
       canvas.save();
       canvas.translate(c.dx, c.dy);
       canvas.rotate(item.rotation);
@@ -93,6 +93,15 @@ class DrawingPainter extends CustomPainter {
     }
     draw();
     if (rotate) canvas.restore();
+  }
+
+  // JIB rotates around body center; all other items rotate around bounding-box center.
+  static Offset _rotationPivot(DrawnItem item) {
+    final b = item.bounds;
+    if (item.rigData?.type == RigType.jib) {
+      return Offset(b.center.dx, b.bottom - 184.5 * b.width / 304.0);
+    }
+    return b.center;
   }
 
   void _drawItem(Canvas canvas, DrawnItem item) {
@@ -540,15 +549,11 @@ class DrawingPainter extends CustomPainter {
       canvas.drawRect(selBox, box);
       if (item.locked) return; // заблоковано — без ручок повороту/розміру
 
-      final Offset handleBase;
-      final Offset rotPoint;
-      if (item.tool == Tool.camera || item.tool == Tool.actor) {
-        handleBase = Offset(selBox.right, center.dy);
-        rotPoint = Offset(selBox.right + 24 / scale, center.dy);
-      } else {
-        handleBase = Offset(center.dx, selBox.top);
-        rotPoint = Offset(center.dx, selBox.top - 24 / scale);
-      }
+      final handleBase = Offset(center.dx, selBox.top);
+      final double handleLen = (item.tool == Tool.camera || item.tool == Tool.actor)
+          ? 36 / scale
+          : 24 / scale;
+      final rotPoint = Offset(center.dx, selBox.top - handleLen);
       canvas.drawLine(handleBase, rotPoint, box);
       canvas.drawCircle(rotPoint, 6 / scale, Paint()..color = rotationHandleColor);
 

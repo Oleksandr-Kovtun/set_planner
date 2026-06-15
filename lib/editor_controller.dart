@@ -178,9 +178,17 @@ class EditorController extends ChangeNotifier {
     _pushUndo();
     final ratio = it.targetAspectRatio;
     final h = ratio > 0 ? w / ratio : w;
-    final center = it.bounds.center;
-    it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
-    it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
+    // JIB: keep body bottom fixed; others: keep centre fixed.
+    if (it.rigData!.type == RigType.jib) {
+      final bottom = it.bounds.bottom;
+      final cx = it.bounds.center.dx;
+      it.points[0] = Offset(cx - w / 2, bottom - h);
+      it.points[1] = Offset(cx + w / 2, bottom);
+    } else {
+      final center = it.bounds.center;
+      it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
+      it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
+    }
     notifyListeners();
   }
 
@@ -188,7 +196,6 @@ class EditorController extends ChangeNotifier {
     final it = selectedItem;
     if (it?.rigData == null || it!.locked || h <= 0) return;
     _pushUndo();
-    final center = it.bounds.center;
     final double w;
     if (it.lockAspect) {
       final ratio = it.targetAspectRatio;
@@ -196,8 +203,17 @@ class EditorController extends ChangeNotifier {
     } else {
       w = it.bounds.width; // keep width (JIB: only boom stretches)
     }
-    it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
-    it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
+    // JIB: keep body bottom fixed so body stays in place; others: keep centre fixed.
+    if (it.rigData!.type == RigType.jib) {
+      final bottom = it.bounds.bottom;
+      final cx = it.bounds.center.dx;
+      it.points[0] = Offset(cx - w / 2, bottom - h);
+      it.points[1] = Offset(cx + w / 2, bottom);
+    } else {
+      final center = it.bounds.center;
+      it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
+      it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
+    }
     notifyListeners();
   }
 
@@ -229,7 +245,7 @@ class EditorController extends ChangeNotifier {
       final lw = item.bounds.width;
       final lh = item.bounds.height;
       final cx = cb.center.dx;
-      final labelCY = cb.top - gap - lh / 2;
+      final labelCY = cb.bottom + gap + lh / 2;
       item.points[0] = Offset(cx - lw / 2, labelCY - lh / 2);
       item.points[1] = Offset(cx + lw / 2, labelCY + lh / 2);
       break;
@@ -357,11 +373,11 @@ class EditorController extends ChangeNotifier {
     );
     _remeasureText(textItem);
 
-    // Position label centred above camera (4 px gap)
+    // Position label centred below camera (4 px gap)
     const gap = 4.0;
     final lw = textItem.bounds.width;
     final lh = textItem.bounds.height;
-    final labelCY = tl.dy - gap - lh / 2;
+    final labelCY = br.dy + gap + lh / 2;
     textItem.points[0] = Offset(snapped.dx - lw / 2, labelCY - lh / 2);
     textItem.points[1] = Offset(snapped.dx + lw / 2, labelCY + lh / 2);
 
@@ -873,18 +889,26 @@ class EditorController extends ChangeNotifier {
   Offset _screenToCanvas(Offset screen) => (screen - _offset) / _scale;
   double get _hitRadius => handleRadius / _scale;
   Offset _toLocal(DrawnItem item, Offset p) =>
-      rotateAround(p, item.bounds.center, -item.rotation);
+      rotateAround(p, _rotationPivot(item), -item.rotation);
+
+  // JIB rotates around body center; all other items rotate around bounding-box center.
+  static Offset _rotationPivot(DrawnItem item) => _pivotForRect(item.bounds, item);
+
+  static Offset _pivotForRect(Rect b, DrawnItem item) {
+    if (item.rigData?.type == RigType.jib) {
+      return Offset(b.center.dx, b.bottom - 184.5 * b.width / 304.0);
+    }
+    return b.center;
+  }
 
   Offset _rotationHandlePos(DrawnItem item) {
-    final center = item.bounds.center;
+    final pivot = _rotationPivot(item);
     final box = item.bounds.inflate(selectionPadding);
-    final Offset local;
-    if (item.tool == Tool.camera || item.tool == Tool.actor) {
-      local = Offset(box.right + rotationHandleOffset / _scale, center.dy);
-    } else {
-      local = Offset(center.dx, box.top - rotationHandleOffset / _scale);
-    }
-    return rotateAround(local, center, item.rotation);
+    final double len = (item.tool == Tool.camera || item.tool == Tool.actor)
+        ? rotationHandleOffset * 1.5 / _scale
+        : rotationHandleOffset / _scale;
+    final local = Offset(box.center.dx, box.top - len);
+    return rotateAround(local, pivot, item.rotation);
   }
 
   Offset _boxHandlePos(Rect box, Offset f) =>
@@ -1386,11 +1410,9 @@ class EditorController extends ChangeNotifier {
     }
     final item = selectedItem;
     if (item == null || item.locked) return;
-    final center = item.bounds.center;
-    final angle = math.atan2(p.dy - center.dy, p.dx - center.dx);
-    // Camera and actor handles are on the right (rest angle = 0); others are on top (rest angle = π/2).
-    final restAngle = (item.tool == Tool.camera || item.tool == Tool.actor) ? 0.0 : math.pi / 2;
-    item.rotation = angle + restAngle;
+    final pivot = _rotationPivot(item);
+    final angle = math.atan2(p.dy - pivot.dy, p.dx - pivot.dx);
+    item.rotation = angle + math.pi / 2;
     notifyListeners();
   }
 
@@ -1398,7 +1420,7 @@ class EditorController extends ChangeNotifier {
     final f = _handleFactor;
     final before = item.bounds;
     final anchorLocal = _boxHandlePos(before, Offset(1 - f.dx, 1 - f.dy));
-    final worldBefore = rotateAround(anchorLocal, before.center, item.rotation);
+    final worldBefore = rotateAround(anchorLocal, _rotationPivot(item), item.rotation);
 
     double l = before.left, t = before.top, r = before.right, b = before.bottom;
     if (f.dx == 0) {
@@ -1454,7 +1476,7 @@ class EditorController extends ChangeNotifier {
     }
 
     final after = Rect.fromLTRB(l, t, r, b);
-    final worldAfter = rotateAround(anchorLocal, after.center, item.rotation);
+    final worldAfter = rotateAround(anchorLocal, _pivotForRect(after, item), item.rotation);
     final shift = worldBefore - worldAfter;
 
     item.points[0] = Offset(after.left, after.top) + shift;
