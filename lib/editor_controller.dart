@@ -70,6 +70,8 @@ class EditorController extends ChangeNotifier {
   DrawnItem? _tableDragCamera;
   Offset? _polylineCursorPos;
   int _nextGroupId = 1;
+  List<DrawnItem> _clipboard = [];
+  bool get hasClipboard => _clipboard.isNotEmpty;
 
   // Поточний розмір камери — змінюється при ресайзі і застосовується до всіх камер
   Size _cameraSize = const Size(75, 75);
@@ -1921,6 +1923,117 @@ class EditorController extends ChangeNotifier {
         deletedIds.contains(item.boundToId));
     _selection.clear();
     notifyListeners();
+  }
+
+  // ── Copy / Cut / Paste / Duplicate / Select-all ───────────────────────────
+
+  void copySelected() {
+    if (_selection.isEmpty) return;
+    final selectedIds = {for (final i in _selection) _items[i].id};
+    // Camera labels bound to selected cameras are included automatically.
+    _clipboard = [
+      for (int i = 0; i < _items.length; i++)
+      if (_selection.contains(i) ||
+          (_isCameraLabel(_items[i]) &&
+              selectedIds.contains(_items[i].boundToId)))
+      _items[i].copy()
+    ];
+  }
+
+  void cutSelected() {
+    copySelected();
+    deleteSelected();
+  }
+
+  void pasteClipboard() {
+    if (_clipboard.isEmpty) return;
+    _pushUndo();
+    const pasteOffset = Offset(20, 20);
+
+    // Remap group IDs so pasted groups stay grouped among themselves.
+    final groupMap = <int, int>{};
+    for (final src in _clipboard) {
+      if (src.groupId != null && !groupMap.containsKey(src.groupId)) {
+        groupMap[src.groupId!] = _nextGroupId++;
+      }
+    }
+
+    // Create new items without specifying id: → auto-generates new IDs.
+    final newItems = <DrawnItem>[];
+    for (final src in _clipboard) {
+      newItems.add(DrawnItem(
+        src.tool,
+        [for (final p in src.points) p + pasteOffset],
+        strokeWidth: src.strokeWidth,
+        strokeColor: src.strokeColor,
+        fillColor: src.fillColor,
+        lockAspect: src.lockAspect,
+        rotation: src.rotation,
+        band: src.band,
+        svgPicture: src.svgPicture,
+        svgSize: src.svgSize,
+        svgPath: src.svgPath,
+        svgPathD: src.svgPathD,
+        svgPathBounds: src.svgPathBounds,
+        image: src.image,
+        opacity: src.opacity,
+        groupId: src.groupId != null ? groupMap[src.groupId!] : null,
+        text: src.text,
+        fontSize: src.fontSize,
+        fontFamily: src.fontFamily,
+        bold: src.bold,
+        italic: src.italic,
+        textAlign: src.textAlign,
+        locked: src.locked,
+        smoothed: src.smoothed,
+        arrowHeadStart: src.arrowHeadStart,
+        arrowHeadEnd: src.arrowHeadEnd,
+        cameraData: src.cameraData?.copy(),
+        actorData: src.actorData?.copy(),
+        rigData: src.rigData?.copy(),
+        visible: src.visible,
+      ));
+    }
+
+    // Build old→new ID map; then fix up boundToId references.
+    final idMap = <int, int>{
+      for (int i = 0; i < _clipboard.length; i++) _clipboard[i].id: newItems[i].id
+    };
+    for (int i = 0; i < newItems.length; i++) {
+      final oldBound = _clipboard[i].boundToId;
+      if (oldBound != null) newItems[i].boundToId = idMap[oldBound];
+    }
+
+    for (final item in newItems) {
+      _insertByBand(item);
+    }
+
+    // Select newly pasted items, excluding auto-included camera labels.
+    final newIndices = <int>{
+      for (final item in newItems)
+      if (!_isCameraLabel(item))
+      _items.indexOf(item)
+    }..remove(-1);
+    if (newIndices.isNotEmpty) _setSelection(newIndices);
+    notifyListeners();
+  }
+
+  void selectAll() {
+    final indices = <int>{
+      for (int i = 0; i < _items.length; i++)
+      if (!_items[i].locked && !_isCameraLabel(_items[i])) i
+    };
+    if (indices.isEmpty) return;
+    _setSelection(indices);
+    notifyListeners();
+  }
+
+  void duplicate() {
+    if (_selection.isEmpty) return;
+    final saved = List<DrawnItem>.of(_clipboard);
+    copySelected();
+    pasteClipboard();
+    _clipboard = saved; // preserve the clipboard the user had before
   }
 
   void clear() {

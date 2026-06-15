@@ -180,19 +180,56 @@ class _EditorScreenState extends State<EditorScreen> with TickerProviderStateMix
     );
   }
 
-  // Клавіатура (на компʼютері): Delete / Backspace видаляють вибраний елемент.
+  // Клавіатура (на компʼютері): глобальні гарячі клавіші.
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     // Якщо фокус не на кореневому вузлі — значить якийсь TextField (пропс-панель,
     // редактор тексту на канвасі тощо) отримав його раніше. Ігноруємо.
     if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
     if (_controller.isEditingText) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-    final isDelete = event.logicalKey == LogicalKeyboardKey.delete ||
-        event.logicalKey == LogicalKeyboardKey.backspace;
-    if (event is KeyDownEvent && isDelete && _controller.selectedItem != null) {
+    final key = event.logicalKey;
+    final hw = HardwareKeyboard.instance;
+    final isMod = hw.isControlPressed || hw.isMetaPressed; // Ctrl (Win/Linux) або Cmd (Mac)
+    final isShift = hw.isShiftPressed;
+
+    // ── Cmd/Ctrl + клавіша ────────────────────────────────────────────────
+    if (isMod) {
+      switch (key) {
+        case LogicalKeyboardKey.keyZ:
+          isShift ? _controller.redo() : _controller.undo();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyY:
+          _controller.redo();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyC:
+          _controller.copySelected();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyX:
+          _controller.cutSelected();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyV:
+          _controller.pasteClipboard();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyA:
+          _controller.selectAll();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyD:
+          _controller.duplicate();
+          return KeyEventResult.handled;
+        default:
+          break;
+      }
+    }
+
+    // ── Delete / Backspace ────────────────────────────────────────────────
+    final isDelete = key == LogicalKeyboardKey.delete ||
+        key == LogicalKeyboardKey.backspace;
+    if (isDelete && _controller.hasSelection) {
       _controller.deleteSelected();
       return KeyEventResult.handled;
     }
+
     return KeyEventResult.ignored;
   }
 
