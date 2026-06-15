@@ -182,7 +182,9 @@ class _EditorScreenState extends State<EditorScreen> with TickerProviderStateMix
 
   // Клавіатура (на компʼютері): Delete / Backspace видаляють вибраний елемент.
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    // Під час редагування тексту клавіші належать полю вводу, а не видаленню елемента.
+    // Якщо фокус не на кореневому вузлі — значить якийсь TextField (пропс-панель,
+    // редактор тексту на канвасі тощо) отримав його раніше. Ігноруємо.
+    if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
     if (_controller.isEditingText) return KeyEventResult.ignored;
 
     final isDelete = event.logicalKey == LogicalKeyboardKey.delete ||

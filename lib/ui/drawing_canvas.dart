@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../editor_controller.dart';
@@ -201,10 +202,9 @@ class _CanvasTextEditorState extends State<_CanvasTextEditor> {
                 translation: const Offset(-0.5, -0.5), // центруємо блок на точці
                 child: Transform.rotate(
                   angle: item.rotation,
-                  child: IntrinsicWidth( // ширина = ширина тексту
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: 24 * scale),
-                      child: TextField(
+                  child: SizedBox(
+                    width: math.max(24 * scale, item.bounds.width * scale),
+                    child: TextField(
                         controller: _tc,
                         focusNode: _focus,
                         maxLines: null, // висота росте з кількістю рядків
@@ -232,7 +232,6 @@ class _CanvasTextEditorState extends State<_CanvasTextEditor> {
                   ),
                 ),
               ),
-            ),
           ],
         );
       },

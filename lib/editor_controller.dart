@@ -851,6 +851,11 @@ class EditorController extends ChangeNotifier {
       strings = AppStrings.of(settings.language);
     }
     _settings = settings;
+    // Recalculate bounds for all text items so they match the actual text
+    // (avoids drift if the file was written with different pretty-print settings).
+    for (final item in _items) {
+      if (item.tool == Tool.text) _remeasureText(item);
+    }
     notifyListeners();
   }
 
@@ -1033,14 +1038,43 @@ class EditorController extends ChangeNotifier {
       }
       notifyListeners();
     } else if ((wasMoving || wasResizing) && _settings.snapToGrid) {
-      // Привязуємо всі відредаговані елементи до сітки тільки при відпусканні
-      for (final i in _selection) {
-        if (!_items[i].locked) {
-          for (int k = 0; k < _items[i].points.length; k++) {
-            _items[i].points[k] = _snapToGrid(_items[i].points[k]);
+      if (wasMoving) {
+        // Прив'язуємо лише верхній лівий кут (points[0]) до сітки,
+        // решта точок зміщуються на той самий delta → розміри не змінюються.
+        for (final i in _selection) {
+          final item = _items[i];
+          if (item.locked || item.points.isEmpty) continue;
+          final before = item.points[0];
+          final snapped = _snapToGrid(before);
+          final delta = snapped - before;
+          if (delta == Offset.zero) continue;
+          for (int k = 0; k < item.points.length; k++) {
+            item.points[k] = item.points[k] + delta;
+          }
+        }
+      } else if (_selection.length == 1) {
+        // Зміна розміру (один елемент): прив'язуємо лише ту сторону/кут
+        // що перетягував користувач; протилежний кут залишається на місці.
+        final item = _items[_selection.first];
+        if (!item.locked) {
+          if (toolIsBox(item.tool) && item.points.length >= 2) {
+            final f = _handleFactor;
+            final gs = _settings.gridSize;
+            double snap(double v) => (v / gs).round() * gs;
+            var p0 = item.points[0];
+            var p1 = item.points[1];
+            if (f.dx == 0) p0 = Offset(snap(p0.dx), p0.dy);
+            if (f.dx == 1) p1 = Offset(snap(p1.dx), p1.dy);
+            if (f.dy == 0) p0 = Offset(p0.dx, snap(p0.dy));
+            if (f.dy == 1) p1 = Offset(p1.dx, snap(p1.dy));
+            item.points[0] = p0;
+            item.points[1] = p1;
+          } else if (!toolIsBox(item.tool) && _resizeHandle < item.points.length) {
+            item.points[_resizeHandle] = _snapToGrid(item.points[_resizeHandle]);
           }
         }
       }
+      // Зміна розміру групи: не перераховуємо позиції при відпусканні.
       notifyListeners();
     }
     if (wasResizing && _selection.length == 1) {

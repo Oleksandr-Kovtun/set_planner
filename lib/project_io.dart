@@ -288,7 +288,7 @@ class ProjectLoader {
 
     // Text content
     final textEl = el.findElements('Text').firstOrNull;
-    final text = textEl?.innerText;
+    final text = textEl?.innerText.trim();
 
     // Camera data
     CameraData? cameraData;

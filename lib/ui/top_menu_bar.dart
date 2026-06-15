@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../editor_controller.dart';
 import '../l10n/app_strings.dart';
 import '../project_io.dart';
@@ -77,6 +78,12 @@ class _TopMenuBarState extends State<TopMenuBar> {
             color: Colors.white,
           ),
           IconButton(
+            tooltip: strings.saveAsProject,
+            onPressed: _saveAsProject,
+            icon: const Icon(Icons.save_as_outlined),
+            color: Colors.white,
+          ),
+          IconButton(
             tooltip: strings.exportImage,
             onPressed: () => _soon(context, strings.exportComingSoon),
             icon: const Icon(Icons.image_outlined),
@@ -138,11 +145,51 @@ class _TopMenuBarState extends State<TopMenuBar> {
 
   // ── Save ─────────────────────────────────────────────────────────────────
 
+  Future<void> _saveAsProject() async {
+    if (Platform.isIOS || Platform.isAndroid) {
+      await _saveViaShareSheet();
+      return;
+    }
+    final path = await _showSaveAsDialog();
+    if (path == null) return;
+    await _writeToPath(path);
+  }
+
   Future<void> _saveProject() async {
-    // Reuse last path; show "Save As" dialog when saving for the first time.
+    if (Platform.isIOS || Platform.isAndroid) {
+      // On mobile: write to temp dir then open the native Share Sheet.
+      // User taps «Save to Files» to choose any folder in the Files app.
+      await _saveViaShareSheet();
+      return;
+    }
+    // Desktop: show Save-As dialog, remember path for subsequent saves.
     final path = _savePath ?? await _showSaveAsDialog();
     if (path == null) return;
     await _writeToPath(path);
+  }
+
+  Future<void> _saveViaShareSheet() async {
+    try {
+      final xml = await ProjectSerializer.toXmlString(
+        items: controller.items,
+        settings: controller.settings,
+        scale: controller.scale,
+        offset: controller.offset,
+      );
+      final tmp = await getTemporaryDirectory();
+      final file = File('${tmp.path}/project.splan');
+      await file.writeAsString(xml);
+      await Share.shareXFiles(
+        [XFile(file.path, name: 'project.splan', mimeType: 'application/octet-stream')],
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${strings.saveError}: $e'),
+              duration: const Duration(seconds: 3)),
+        );
+      }
+    }
   }
 
   Future<void> _writeToPath(String path) async {
@@ -251,6 +298,7 @@ class _SaveAsDialogState extends State<_SaveAsDialog> {
   late String _dir;
   late TextEditingController _nameCtrl;
 
+
   @override
   void initState() {
     super.initState();
@@ -269,7 +317,7 @@ class _SaveAsDialogState extends State<_SaveAsDialog> {
       final picked = await getDirectoryPath();
       if (picked != null && mounted) setState(() => _dir = picked);
     } on UnimplementedError {
-      // getDirectoryPath not available — user can type the path manually
+      // Not available on this platform — user keeps the default path.
     }
   }
 

@@ -54,7 +54,7 @@ class AppStrings {
   final String gridSizeLabel;
   final String showGrid, snapToGrid;
   final String primaryColor, pickColor, select;
-  final String openProject, saveError, openError;
+  final String openProject, saveAsProject, saveError, openError, saveToFilesHint;
 
   const AppStrings({
     required this.appTitle,
@@ -185,8 +185,10 @@ class AppStrings {
     required this.pickColor,
     required this.select,
     required this.openProject,
+    required this.saveAsProject,
     required this.saveError,
     required this.openError,
+    required this.saveToFilesHint,
   });
 
   // Назва фігури за інструментом.
@@ -350,8 +352,10 @@ class AppStrings {
     pickColor: 'Оберіть колір',
     select: 'Вибрати',
     openProject: 'Відкрити проєкт',
+    saveAsProject: 'Зберегти як...',
     saveError: 'Помилка збереження',
     openError: 'Помилка відкриття файлу',
+    saveToFilesHint: 'Файл буде збережено у програмі «Файли» → Set Planner',
   );
 
   // ===== English =====
@@ -484,8 +488,10 @@ class AppStrings {
     pickColor: 'Pick a color',
     select: 'Select',
     openProject: 'Open project',
+    saveAsProject: 'Save As...',
     saveError: 'Save error',
     openError: 'Failed to open file',
+    saveToFilesHint: 'File will be saved in Files app → Set Planner',
   );
 
   static AppStrings of(String languageCode) {
