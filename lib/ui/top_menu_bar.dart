@@ -1,10 +1,15 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../drawing_painter.dart';
 import '../editor_controller.dart';
 import '../l10n/app_strings.dart';
+import '../models/settings.dart';
 import '../project_io.dart';
 import 'settings_dialog.dart';
 
@@ -85,7 +90,7 @@ class _TopMenuBarState extends State<TopMenuBar> {
           ),
           IconButton(
             tooltip: strings.exportImage,
-            onPressed: () => _soon(context, strings.exportComingSoon),
+            onPressed: _exportImage,
             icon: const Icon(Icons.image_outlined),
             color: Colors.white,
           ),
@@ -222,12 +227,19 @@ class _TopMenuBarState extends State<TopMenuBar> {
     }
   }
 
-  Future<String?> _showSaveAsDialog() async {
+  Future<String?> _showSaveAsDialog({
+    String defaultName = 'project.splan',
+    String extension = '.splan',
+  }) async {
     final docsDir = await getApplicationDocumentsDirectory();
     if (!mounted) return null;
     return showDialog<String>(
       context: context,
-      builder: (ctx) => _SaveAsDialog(defaultDir: docsDir.path),
+      builder: (ctx) => _SaveAsDialog(
+        defaultDir: docsDir.path,
+        defaultName: defaultName,
+        extension: extension,
+      ),
     );
   }
 
@@ -265,6 +277,113 @@ class _TopMenuBarState extends State<TopMenuBar> {
     }
   }
 
+  // ── Export ────────────────────────────────────────────────────────────────
+
+  Future<void> _exportImage() async {
+    final items = controller.items;
+    if (items.isEmpty) return;
+
+    try {
+      // Bounding box of all visible items (canvas coordinates).
+      Rect? contentBounds;
+      for (final item in items) {
+        if (!item.visible) continue;
+        contentBounds = contentBounds == null
+            ? item.visualBounds
+            : contentBounds.expandToInclude(item.visualBounds);
+      }
+      if (contentBounds == null || contentBounds.isEmpty) return;
+
+      // Paper dimensions at 72 DPI (72 px/inch = 72/25.4 px/mm).
+      const dpi = 72.0;
+      const pxPerMm = dpi / 25.4;
+      const marginPx = 20.0 * pxPerMm; // 2 cm = 20 mm
+
+      final s = controller.settings;
+      final mm = s.paperSize.mmSize;
+      final landscape = s.paperOrientation == PaperOrientation.landscape;
+      final paperW = (landscape ? mm.height : mm.width) * pxPerMm;
+      final paperH = (landscape ? mm.width : mm.height) * pxPerMm;
+
+      // Scale content to fit inside the printable area (preserving aspect ratio).
+      final availW = paperW - 2 * marginPx;
+      final availH = paperH - 2 * marginPx;
+      final scaleFactor = math.min(
+        availW / contentBounds.width,
+        availH / contentBounds.height,
+      );
+      final scaledW = contentBounds.width * scaleFactor;
+      final scaledH = contentBounds.height * scaleFactor;
+
+      // Offset so content is centred on the page.
+      final exportOffset = Offset(
+        marginPx + (availW - scaledW) / 2 - contentBounds.left * scaleFactor,
+        marginPx + (availH - scaledH) / 2 - contentBounds.top * scaleFactor,
+      );
+
+      // Render to an offscreen image.
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, paperW, paperH),
+        Paint()..color = Colors.white,
+      );
+      DrawingPainter(
+        items,
+        scale: scaleFactor,
+        offset: exportOffset,
+        showGrid: false,
+        cameraInfoFields: s.cameraInfoFields,
+      ).paint(canvas, Size(paperW, paperH));
+
+      final picture = recorder.endRecording();
+      final uiImage = await picture.toImage(paperW.round(), paperH.round());
+      final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (byteData == null) return;
+
+      // Encode to JPEG.
+      final rgbaBytes = byteData.buffer.asUint8List();
+      final imgImage = img.Image.fromBytes(
+        width: paperW.round(),
+        height: paperH.round(),
+        bytes: rgbaBytes.buffer,
+        order: img.ChannelOrder.rgba,
+      );
+      final jpegBytes = img.encodeJpg(imgImage, quality: 92);
+
+      // Save or share.
+      if (Platform.isIOS || Platform.isAndroid) {
+        final tmp = await getTemporaryDirectory();
+        final file = File('${tmp.path}/export.jpg');
+        await file.writeAsBytes(jpegBytes);
+        await Share.shareXFiles(
+          [XFile(file.path, name: 'export.jpg', mimeType: 'image/jpeg')],
+        );
+      } else {
+        final path = await _showSaveAsDialog(
+          defaultName: 'export.jpg',
+          extension: '.jpg',
+        );
+        if (path == null) return;
+        await File(path).writeAsBytes(jpegBytes);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(path), duration: const Duration(seconds: 2)),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${strings.exportError}: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   void _showSettings(BuildContext context) {
@@ -277,18 +396,19 @@ class _TopMenuBarState extends State<TopMenuBar> {
     );
   }
 
-  void _soon(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
-    );
-  }
 }
 
 // ── Save-As dialog ────────────────────────────────────────────────────────────
 
 class _SaveAsDialog extends StatefulWidget {
   final String defaultDir;
-  const _SaveAsDialog({required this.defaultDir});
+  final String defaultName;
+  final String extension;
+  const _SaveAsDialog({
+    required this.defaultDir,
+    this.defaultName = 'project.splan',
+    this.extension = '.splan',
+  });
 
   @override
   State<_SaveAsDialog> createState() => _SaveAsDialogState();
@@ -298,12 +418,11 @@ class _SaveAsDialogState extends State<_SaveAsDialog> {
   late String _dir;
   late TextEditingController _nameCtrl;
 
-
   @override
   void initState() {
     super.initState();
     _dir = widget.defaultDir;
-    _nameCtrl = TextEditingController(text: 'project.splan');
+    _nameCtrl = TextEditingController(text: widget.defaultName);
   }
 
   @override
@@ -324,7 +443,7 @@ class _SaveAsDialogState extends State<_SaveAsDialog> {
   void _confirm() {
     var name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
-    if (!name.endsWith('.splan')) name = '$name.splan';
+    if (!name.endsWith(widget.extension)) name = '$name${widget.extension}';
     Navigator.pop(context, '$_dir${Platform.pathSeparator}$name');
   }
 
@@ -357,10 +476,10 @@ class _SaveAsDialogState extends State<_SaveAsDialog> {
             TextField(
               controller: _nameCtrl,
               autofocus: true,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                border: OutlineInputBorder(),
-                hintText: 'project.splan',
+                border: const OutlineInputBorder(),
+                hintText: widget.defaultName,
               ),
               onSubmitted: (_) => _confirm(),
             ),

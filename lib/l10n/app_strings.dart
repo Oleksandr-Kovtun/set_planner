@@ -54,7 +54,7 @@ class AppStrings {
   final String gridSizeLabel;
   final String showGrid, snapToGrid;
   final String primaryColor, pickColor, select;
-  final String openProject, saveAsProject, saveError, openError, saveToFilesHint;
+  final String openProject, saveAsProject, saveError, openError, saveToFilesHint, exportError;
 
   const AppStrings({
     required this.appTitle,
@@ -189,6 +189,7 @@ class AppStrings {
     required this.saveError,
     required this.openError,
     required this.saveToFilesHint,
+    required this.exportError,
   });
 
   // Назва фігури за інструментом.
@@ -228,7 +229,7 @@ class AppStrings {
     undo: 'Скасувати',
     redo: 'Повторити',
     saveProject: 'Зберегти проєкт (XML)',
-    exportImage: 'Експортувати зображення',
+    exportImage: 'Зберегти як JPG',
     saveComingSoon: 'Збереження у XML — зробимо наступним кроком',
     exportComingSoon: 'Експорт зображення — зробимо наступним кроком',
     zoom: 'Масштаб',
@@ -356,6 +357,7 @@ class AppStrings {
     saveError: 'Помилка збереження',
     openError: 'Помилка відкриття файлу',
     saveToFilesHint: 'Файл буде збережено у програмі «Файли» → Set Planner',
+    exportError: 'Помилка експорту',
   );
 
   // ===== English =====
@@ -364,7 +366,7 @@ class AppStrings {
     undo: 'Undo',
     redo: 'Redo',
     saveProject: 'Save project (XML)',
-    exportImage: 'Export image',
+    exportImage: 'Save as JPG',
     saveComingSoon: 'XML saving — coming in the next step',
     exportComingSoon: 'Image export — coming in the next step',
     zoom: 'Zoom',
@@ -492,6 +494,7 @@ class AppStrings {
     saveError: 'Save error',
     openError: 'Failed to open file',
     saveToFilesHint: 'File will be saved in Files app → Set Planner',
+    exportError: 'Export error',
   );
 
   static AppStrings of(String languageCode) {
