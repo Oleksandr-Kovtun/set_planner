@@ -2008,6 +2008,16 @@ class EditorController extends ChangeNotifier {
       _insertByBand(item);
     }
 
+    // Pasted cameras carry the original number — reassign to the next free slot.
+    // Process sequentially so each call to _nextCameraNumber() sees the previous
+    // camera's updated number and doesn't produce duplicates.
+    for (final item in newItems) {
+      if (item.cameraData != null) {
+        item.cameraData!.number = _nextCameraNumber();
+        _updateCameraLabel(item);
+      }
+    }
+
     // Select newly pasted items, excluding auto-included camera labels.
     final newIndices = <int>{
       for (final item in newItems)
