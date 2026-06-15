@@ -474,7 +474,12 @@ class DrawingPainter extends CustomPainter {
     if (tableOffset != null) {
       tableTopLeft = r.center + tableOffset;
     } else {
-      tableTopLeft = Offset(r.center.dx - tableW / 2, r.bottom + gap);
+      // Default: below the camera number label (if present), otherwise below the camera.
+      final labelItem = items.where(
+        (it) => it.tool == Tool.text && it.boundToId == item.id,
+      ).firstOrNull;
+      final anchorBottom = labelItem != null ? labelItem.bounds.bottom : r.bottom;
+      tableTopLeft = Offset(r.center.dx - tableW / 2, anchorBottom + gap);
     }
     final tableRect = Rect.fromLTWH(tableTopLeft.dx, tableTopLeft.dy, tableW, tableH);
 

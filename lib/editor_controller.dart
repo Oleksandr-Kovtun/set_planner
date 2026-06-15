@@ -299,7 +299,12 @@ class EditorController extends ChangeNotifier {
     if (cd.tableOffset != null) {
       topLeft = vb.center + cd.tableOffset!;
     } else {
-      topLeft = Offset(vb.center.dx - tableW / 2, vb.bottom + gap);
+      // Default: below the camera number label (if present), otherwise below the camera.
+      final labelItem = _items.where(
+        (it) => it.tool == Tool.text && it.boundToId == cam.id,
+      ).firstOrNull;
+      final anchorBottom = labelItem != null ? labelItem.bounds.bottom : vb.bottom;
+      topLeft = Offset(vb.center.dx - tableW / 2, anchorBottom + gap);
     }
     return Rect.fromLTWH(topLeft.dx, topLeft.dy, tableW, tableH);
   }
@@ -321,7 +326,13 @@ class EditorController extends ChangeNotifier {
     final cd = cam.cameraData!;
     if (cd.tableOffset == null) {
       const approxHalfW = 99.0; // (30 chars * 0.55 * 20pt + 8*2) / 2
-      cd.tableOffset = Offset(-approxHalfW, cam.visualBounds.height / 2 + 12.0);
+      const gap = 12.0;
+      final vb = cam.visualBounds;
+      final labelItem = _items.where(
+        (it) => it.tool == Tool.text && it.boundToId == cam.id,
+      ).firstOrNull;
+      final anchorBottom = labelItem != null ? labelItem.bounds.bottom : vb.bottom;
+      cd.tableOffset = Offset(-approxHalfW, anchorBottom + gap - vb.center.dy);
     }
     cd.tableOffset = cd.tableOffset! + delta;
     notifyListeners();
