@@ -26,8 +26,22 @@ class TopMenuBar extends StatefulWidget {
 }
 
 class _TopMenuBarState extends State<TopMenuBar> {
-  // Remembered save path — reused on subsequent Ctrl+S presses.
   String? _savePath;
+
+  // GlobalKeys for buttons that trigger Share Sheet — needed on iPad to anchor the popover.
+  final _saveKey      = GlobalKey();
+  final _saveAsKey    = GlobalKey();
+  final _exportImgKey = GlobalKey();
+  final _exportPdfKey = GlobalKey();
+
+  // Returns the screen Rect of the widget identified by [key].
+  // On non-iPad platforms returns null (share_plus ignores it).
+  Rect? _anchor(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    final pos = box.localToGlobal(Offset.zero);
+    return pos & box.size; // Rect.fromLTWH shorthand
+  }
 
   EditorController get controller => widget.controller;
 
@@ -81,24 +95,28 @@ class _TopMenuBarState extends State<TopMenuBar> {
             color: Colors.white,
           ),
           IconButton(
+            key: _saveKey,
             tooltip: strings.saveProject,
             onPressed: _saveProject,
             icon: const Icon(Icons.save_outlined),
             color: Colors.white,
           ),
           IconButton(
+            key: _saveAsKey,
             tooltip: strings.saveAsProject,
             onPressed: _saveAsProject,
             icon: const Icon(Icons.save_as_outlined),
             color: Colors.white,
           ),
           IconButton(
+            key: _exportImgKey,
             tooltip: strings.exportImage,
             onPressed: _exportImage,
             icon: const Icon(Icons.image_outlined),
             color: Colors.white,
           ),
           IconButton(
+            key: _exportPdfKey,
             tooltip: strings.exportPdf,
             onPressed: _exportPdf,
             icon: const Icon(Icons.picture_as_pdf_outlined),
@@ -162,7 +180,7 @@ class _TopMenuBarState extends State<TopMenuBar> {
 
   Future<void> _saveAsProject() async {
     if (Platform.isIOS || Platform.isAndroid) {
-      await _saveViaShareSheet();
+      await _saveViaShareSheet(_saveAsKey);
       return;
     }
     final path = await _showSaveAsDialog();
@@ -172,18 +190,15 @@ class _TopMenuBarState extends State<TopMenuBar> {
 
   Future<void> _saveProject() async {
     if (Platform.isIOS || Platform.isAndroid) {
-      // On mobile: write to temp dir then open the native Share Sheet.
-      // User taps «Save to Files» to choose any folder in the Files app.
-      await _saveViaShareSheet();
+      await _saveViaShareSheet(_saveKey);
       return;
     }
-    // Desktop: show Save-As dialog, remember path for subsequent saves.
     final path = _savePath ?? await _showSaveAsDialog();
     if (path == null) return;
     await _writeToPath(path);
   }
 
-  Future<void> _saveViaShareSheet() async {
+  Future<void> _saveViaShareSheet(GlobalKey anchorKey) async {
     try {
       final xml = await ProjectSerializer.toXmlString(
         items: controller.items,
@@ -196,6 +211,7 @@ class _TopMenuBarState extends State<TopMenuBar> {
       await file.writeAsString(xml);
       await Share.shareXFiles(
         [XFile(file.path, name: 'project.splan', mimeType: 'application/octet-stream')],
+        sharePositionOrigin: _anchor(anchorKey),
       );
     } catch (e) {
       if (mounted) {
@@ -368,6 +384,7 @@ class _TopMenuBarState extends State<TopMenuBar> {
         await file.writeAsBytes(jpegBytes);
         await Share.shareXFiles(
           [XFile(file.path, name: 'export.jpg', mimeType: 'image/jpeg')],
+          sharePositionOrigin: _anchor(_exportImgKey),
         );
       } else {
         final path = await _showSaveAsDialog(
@@ -517,7 +534,7 @@ class _TopMenuBarState extends State<TopMenuBar> {
         await Share.shareXFiles([
           XFile(file.path,
               name: 'cameras.pdf', mimeType: 'application/pdf'),
-        ]);
+        ], sharePositionOrigin: _anchor(_exportPdfKey));
       } else {
         final path = await _showSaveAsDialog(
             defaultName: 'cameras.pdf', extension: '.pdf');
