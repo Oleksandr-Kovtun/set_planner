@@ -523,7 +523,7 @@ class DrawingPainter extends CustomPainter {
     canvas.drawRect(box, boxPaint);
 
     // ручка обертання групи
-    final rot = Offset(box.center.dx, box.top - 24 / scale);
+    final rot = Offset(box.center.dx, box.top - 56 / scale);
     canvas.drawLine(Offset(box.center.dx, box.top), rot, boxPaint);
     canvas.drawCircle(rot, 6 / scale, Paint()..color = rotationHandleColor);
 
@@ -555,10 +555,7 @@ class DrawingPainter extends CustomPainter {
       if (item.locked) return; // заблоковано — без ручок повороту/розміру
 
       final handleBase = Offset(center.dx, selBox.top);
-      final double handleLen = (item.tool == Tool.camera || item.tool == Tool.actor)
-          ? 36 / scale
-          : 24 / scale;
-      final rotPoint = Offset(center.dx, selBox.top - handleLen);
+      final rotPoint = Offset(center.dx, selBox.top - 56 / scale);
       canvas.drawLine(handleBase, rotPoint, box);
       canvas.drawCircle(rotPoint, 6 / scale, Paint()..color = rotationHandleColor);
 

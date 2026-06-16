@@ -12,7 +12,7 @@ enum _Interaction { none, drawing, moving, resizing, rotating, marquee, movingTa
 
 class EditorController extends ChangeNotifier {
   static const double handleRadius = 25;
-  static const double rotationHandleOffset = 24; // matches painter: 24/scale base, 36/scale for camera
+  static const double rotationHandleOffset = 56;
   static const double minScale = 0.25;
   static const double maxScale = 4.0;
 
@@ -922,10 +922,7 @@ class EditorController extends ChangeNotifier {
   Offset _rotationHandlePos(DrawnItem item) {
     final pivot = _rotationPivot(item);
     final box = item.bounds.inflate(selectionPadding);
-    final double len = (item.tool == Tool.camera || item.tool == Tool.actor)
-        ? rotationHandleOffset * 1.5 / _scale
-        : rotationHandleOffset / _scale;
-    final local = Offset(box.center.dx, box.top - len);
+    final local = Offset(box.center.dx, box.top - rotationHandleOffset / _scale);
     return rotateAround(local, pivot, item.rotation);
   }
 
