@@ -118,7 +118,9 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                   showGrid: controller.settings.showGrid,
                   activePolyline: controller.activePolyline,
                   polylineCursorPos: controller.polylineCursorPos,
-                  cameraInfoFields: controller.settings.cameraInfoFields,
+                  cameraInfoFields: controller.showCameraKit
+                      ? controller.settings.cameraInfoFields
+                      : const {},
                 ),
                 size: Size.infinite,
               ),

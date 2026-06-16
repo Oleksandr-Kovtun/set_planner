@@ -25,7 +25,6 @@ class _CameraListPanelState extends State<CameraListPanel> {
         final cameras = widget.controller.cameras;
         final actors = widget.controller.actors;
         final selected = widget.controller.selectedItem;
-        final fields = widget.controller.settings.cameraInfoFields;
 
         return Container(
           decoration: BoxDecoration(
@@ -60,7 +59,7 @@ class _CameraListPanelState extends State<CameraListPanel> {
                           final cd = cam.cameraData!;
                           final isSelected = cam.id == selected?.id;
                           final isCollapsed = _cameraCollapsed.contains(cam.id);
-                          final rows = _buildCameraRows(cd, fields);
+                          final rows = _buildCameraRows(cd);
                           return _CameraCard(
                             camera: cam,
                             label: widget.controller.cameraLabel(cd.number),
@@ -136,40 +135,29 @@ class _CameraListPanelState extends State<CameraListPanel> {
     );
   }
 
-  static List<String> _buildCameraRows(CameraData cd, Set<CameraInfoField> fields) {
-    if (fields.isEmpty) return [];
+  static List<String> _buildCameraRows(CameraData cd) {
     final rows = <String>[];
-    if (fields.contains(CameraInfoField.cameraModel) && cd.cameraModel.isNotEmpty) {
-      rows.add('${strings.cameraModel}: ${cd.cameraModel}');
-    }
-    if (fields.contains(CameraInfoField.shotTypes) && cd.shotTypes.isNotEmpty) {
-      rows.add('${strings.shotType}: ${cd.shotTypes.join(', ')}');
-    }
-    if (fields.contains(CameraInfoField.lens) && cd.lens.isNotEmpty) {
-      rows.add('${strings.lens}: ${cd.lens}');
-    }
-    if (fields.contains(CameraInfoField.viewfinder) && cd.viewfinder != ViewfinderType.none) {
+    if (cd.cameraModel.isNotEmpty) rows.add('${strings.cameraModel}: ${cd.cameraModel}');
+    if (cd.shotTypes.isNotEmpty) rows.add('${strings.shotType}: ${cd.shotTypes.join(', ')}');
+    if (cd.lens.isNotEmpty) rows.add('${strings.lens}: ${cd.lens}');
+    if (cd.viewfinder != ViewfinderType.none) {
       final v = cd.viewfinder == ViewfinderType.small ? strings.viewfinderSmall : strings.viewfinderBig;
       rows.add('${strings.viewfinder}: ${strings.yes} ($v)');
     }
-    if (fields.contains(CameraInfoField.headphones) && cd.headphones != HeadphonesType.none) {
+    if (cd.headphones != HeadphonesType.none) {
       final h = cd.headphones == HeadphonesType.single ? strings.headphonesSingle : strings.headphonesDouble;
       rows.add('${strings.headphones}: ${strings.yes} ($h)');
     }
-    if (fields.contains(CameraInfoField.tripod) && cd.tripod) {
+    if (cd.tripod) {
       final desc = cd.tripodDescription.isNotEmpty ? ' (${cd.tripodDescription})' : '';
       rows.add('${strings.tripod}: ${strings.yes}$desc');
     }
-    if (fields.contains(CameraInfoField.wheels) && cd.wheels) {
-      rows.add('${strings.wheels}: ${strings.yes}');
-    }
-    if (fields.contains(CameraInfoField.podium) && cd.podium) {
+    if (cd.wheels) rows.add('${strings.wheels}: ${strings.yes}');
+    if (cd.podium) {
       final desc = cd.podiumDescription.isNotEmpty ? ' (${cd.podiumDescription})' : '';
       rows.add('${strings.podium}: ${strings.yes}$desc');
     }
-    if (fields.contains(CameraInfoField.description) && cd.description.isNotEmpty) {
-      rows.add('${strings.description}: ${cd.description}');
-    }
+    if (cd.description.isNotEmpty) rows.add('${strings.description}: ${cd.description}');
     return rows;
   }
 }

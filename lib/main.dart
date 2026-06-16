@@ -222,6 +222,12 @@ class _EditorScreenState extends State<EditorScreen> with TickerProviderStateMix
       }
     }
 
+    // ── Escape ────────────────────────────────────────────────────────────
+    if (key == LogicalKeyboardKey.escape) {
+      _controller.escapeAction();
+      return KeyEventResult.handled;
+    }
+
     // ── Delete / Backspace ────────────────────────────────────────────────
     final isDelete = key == LogicalKeyboardKey.delete ||
         key == LogicalKeyboardKey.backspace;

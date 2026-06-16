@@ -123,6 +123,17 @@ class _TopMenuBarState extends State<TopMenuBar> {
             color: Colors.white,
           ),
           const Spacer(),
+          ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) => IconButton(
+              tooltip: strings.toggleCameraKit,
+              icon: Icon(controller.showCameraKit
+                  ? Icons.table_chart
+                  : Icons.table_chart_outlined),
+              color: Colors.white,
+              onPressed: controller.toggleCameraKit,
+            ),
+          ),
           _zoomMenu(),
         ],
       ),

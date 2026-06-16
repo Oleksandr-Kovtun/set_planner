@@ -81,6 +81,13 @@ class EditorController extends ChangeNotifier {
   RigType _rigType = RigType.jib;
   RigType get rigType => _rigType;
 
+  bool _showCameraKit = true;
+  bool get showCameraKit => _showCameraKit;
+  void toggleCameraKit() {
+    _showCameraKit = !_showCameraKit;
+    notifyListeners();
+  }
+
   void selectRigTool(RigType type) {
     _rigType = type;
     selectTool(Tool.rig);
@@ -220,10 +227,10 @@ class EditorController extends ChangeNotifier {
   String _cameraLabel(int num) {
     if (_settings.cameraNumberStyle == CameraNumberStyle.alphabetic) {
       if (num >= 1 && num <= 26) {
-        return String.fromCharCode('A'.codeUnitAt(0) + num - 1);
+        return 'Cam ${String.fromCharCode('A'.codeUnitAt(0) + num - 1)}';
       }
     }
-    return num.toString();
+    return 'Cam $num';
   }
 
   void _updateCameraLabel(DrawnItem cam) {
@@ -457,6 +464,7 @@ class EditorController extends ChangeNotifier {
     );
     _insertByBand(rig);
     _setSelection({_items.indexOf(rig)});
+    _currentTool = Tool.select;
     notifyListeners();
   }
 
@@ -892,6 +900,13 @@ class EditorController extends ChangeNotifier {
     for (final item in _items) {
       if (item.tool == Tool.text) _remeasureText(item);
     }
+    // Refresh camera labels to apply current prefix ("Cam N") and reposition.
+    for (final item in _items) {
+      if (item.cameraData != null) {
+        _updateCameraLabel(item);
+        _repositionCameraLabel(item);
+      }
+    }
     notifyListeners();
   }
 
@@ -1190,6 +1205,20 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void escapeAction() {
+    final item = _activeItem;
+    if (item != null && (_interaction == _Interaction.drawing || isPolylineBuilding)) {
+      _items.remove(item);
+      if (_undoStack.isNotEmpty) _undoStack.removeLast();
+      _activeItem = null;
+      _polylineCursorPos = null;
+      _interaction = _Interaction.none;
+    }
+    _selection.clear();
+    _currentTool = Tool.select;
+    notifyListeners();
+  }
+
   void cancelDrawing() {
     final item = _activeItem;
     if (item == null) return;
@@ -1212,7 +1241,7 @@ class EditorController extends ChangeNotifier {
       math.max(rect.top, rect.bottom),
     );
     for (int i = 0; i < _items.length; i++) {
-      if (_items[i].bounds.overlaps(r)) _selection.add(i);
+      if (!_items[i].locked && _items[i].bounds.overlaps(r)) _selection.add(i);
     }
     _expandGroups();
   }

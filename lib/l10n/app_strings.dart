@@ -56,6 +56,7 @@ class AppStrings {
   final String primaryColor, pickColor, select;
   final String openProject, saveAsProject, saveError, openError, saveToFilesHint, exportError;
   final String exportPdf, pdfColViewfinder, pdfColHeadphones;
+  final String toggleCameraKit;
 
   const AppStrings({
     required this.appTitle,
@@ -194,6 +195,7 @@ class AppStrings {
     required this.exportPdf,
     required this.pdfColViewfinder,
     required this.pdfColHeadphones,
+    required this.toggleCameraKit,
   });
 
   // Назва фігури за інструментом.
@@ -365,6 +367,7 @@ class AppStrings {
     exportPdf: 'Зберегти як PDF',
     pdfColViewfinder: 'VF',
     pdfColHeadphones: 'Headset',
+    toggleCameraKit: 'Camera Kit',
   );
 
   // ===== English =====
@@ -505,6 +508,7 @@ class AppStrings {
     exportPdf: 'Save as PDF',
     pdfColViewfinder: 'VF',
     pdfColHeadphones: 'Headset',
+    toggleCameraKit: 'Camera Kit',
   );
 
   static AppStrings of(String languageCode) {
