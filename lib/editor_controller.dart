@@ -12,7 +12,7 @@ enum _Interaction { none, drawing, moving, resizing, rotating, marquee, movingTa
 
 class EditorController extends ChangeNotifier {
   static const double handleRadius = 25;
-  static const double rotationHandleOffset = 40;
+  static const double rotationHandleOffset = 24; // matches painter: 24/scale base, 36/scale for camera
   static const double minScale = 0.25;
   static const double maxScale = 4.0;
 
@@ -609,8 +609,15 @@ class EditorController extends ChangeNotifier {
   void setCameraLabelFontSize(double v) {
     final it = selectedItem;
     if (it == null || it.tool != Tool.text || !_isCameraLabel(it)) return;
-    it.fontSize = v;
-    _remeasureText(it);
+    _pushUndo();
+    for (final item in _items) {
+      if (_isCameraLabel(item)) {
+        item.fontSize = v;
+        _remeasureText(item);
+        final cam = parentCamera(item);
+        if (cam != null) _repositionCameraLabel(cam);
+      }
+    }
     notifyListeners();
   }
 
@@ -1832,8 +1839,21 @@ class EditorController extends ChangeNotifier {
   void setFontSize(double v) {
     final it = selectedItem;
     if (it == null || it.tool != Tool.text) return;
-    it.fontSize = v;
-    _remeasureText(it);
+    if (_isCameraLabel(it)) {
+      // Propagate font size to all camera number labels.
+      _pushUndo();
+      for (final item in _items) {
+        if (_isCameraLabel(item)) {
+          item.fontSize = v;
+          _remeasureText(item);
+          final cam = parentCamera(item);
+          if (cam != null) _repositionCameraLabel(cam);
+        }
+      }
+    } else {
+      it.fontSize = v;
+      _remeasureText(it);
+    }
     notifyListeners();
   }
   void setBold(bool v) {
