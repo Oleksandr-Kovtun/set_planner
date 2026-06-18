@@ -485,7 +485,7 @@ class EditorController extends ChangeNotifier {
       band: LayerBand.base,
       strokeColor: const Color(0xFF000000),
       fillColor: fillColor,
-      lockAspect: type != RigType.jib,
+      lockAspect: type == RigType.dolly,
       rigData: RigData(type: type),
     );
     _insertByBand(rig);
@@ -1502,6 +1502,24 @@ class EditorController extends ChangeNotifier {
       t += d.dy;
     } else if (f.dy == 1) {
       b += d.dy;
+    }
+
+    // Rail: width/corner drag → proportional scale; height-only drag → stretch length freely
+    if (item.tool == Tool.rig && item.rigData?.type == RigType.rail) {
+      final movesX = f.dx != 0.5;
+      final movesY = f.dy != 0.5;
+      if (movesX && before.height > 0) {
+        final ratio = before.width / before.height;
+        final newW = (r - l).abs();
+        final newH = newW / ratio;
+        if (movesY) {
+          if (f.dy == 0) { t = b - newH; } else { b = t + newH; }
+        } else {
+          final cy = (before.top + before.bottom) / 2;
+          t = cy - newH / 2;
+          b = cy + newH / 2;
+        }
+      }
     }
 
     if (item.lockAspect && toolSupportsAspectLock(item.tool)) {

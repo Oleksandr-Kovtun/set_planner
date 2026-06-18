@@ -438,17 +438,27 @@ class DrawingPainter extends CustomPainter {
     filled(box(0.2167, 0.2083, 0.5667, 0.5667));
   }
 
-  // Camera rails — SVG viewBox 304×800, stroke only (fill ignored).
+  // Camera rails — sleeper count is dynamic: spacing tied to width, count grows with height.
   void _drawRail(Canvas canvas, double l, double t, double W, double H, Paint stroke) {
-    // Left and right rails
-    canvas.drawLine(Offset(l + 0.2204 * W, t + 0.0319 * H), Offset(l + 0.2204 * W, t + 0.9631 * H), stroke);
-    canvas.drawLine(Offset(l + 0.7796 * W, t + 0.0319 * H), Offset(l + 0.7796 * W, t + 0.9631 * H), stroke);
-    // Cross-ties (14 total)
-    for (final yf in const [
-      0.0475, 0.1225, 0.1975, 0.2725, 0.3475, 0.4225,
-      0.4975, 0.5725, 0.6475, 0.7225, 0.7975, 0.8725, 0.9475,
-    ]) {
-      canvas.drawLine(Offset(l + 0.2204 * W, t + yf * H), Offset(l + 0.7796 * W, t + yf * H), stroke);
+    if (W <= 0 || H <= 0) return;
+    const railX1 = 0.2204, railX2 = 0.7796;
+    // Sleeper spacing is proportional to width (SVG ratio: 60 spacing / 304 width).
+    final sp = W * (60.0 / 304.0);
+    final count = math.max(1, ((H - sp * 0.5) / sp).floor() + 1);
+    final span = (count - 1) * sp;
+    final firstY = (H - span) / 2;
+    final overhang = sp * (12.5 / 60.0);
+
+    canvas.drawLine(
+      Offset(l + railX1 * W, t + firstY - overhang),
+      Offset(l + railX1 * W, t + firstY + span + overhang), stroke);
+    canvas.drawLine(
+      Offset(l + railX2 * W, t + firstY - overhang),
+      Offset(l + railX2 * W, t + firstY + span + overhang), stroke);
+
+    for (int i = 0; i < count; i++) {
+      final y = t + firstY + i * sp;
+      canvas.drawLine(Offset(l + railX1 * W, y), Offset(l + railX2 * W, y), stroke);
     }
   }
 
