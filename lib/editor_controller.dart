@@ -74,7 +74,7 @@ class EditorController extends ChangeNotifier {
   bool get hasClipboard => _clipboard.isNotEmpty;
 
   // Поточний розмір камери — змінюється при ресайзі і застосовується до всіх камер
-  Size _cameraSize = const Size(51, 75);
+  Size _cameraSize = const Size(40, 60);
   // Поточний розмір актора — змінювати тут для зміни дефолтного розміру
   Size _actorSize = const Size(80, 80);
 
@@ -466,9 +466,9 @@ class EditorController extends ChangeNotifier {
 
   void _addRig(RigType type, Offset canvasP) {
     final Size size = switch (type) {
-      RigType.jib   => const Size(150, 395),
-      RigType.dolly => const Size(150, 150),
-      RigType.rail  => const Size(150, 395),
+      RigType.jib   => const Size(160, 400),
+      RigType.dolly => const Size(160, 160),
+      RigType.rail  => const Size(160, 400),
     };
     final Color? fillColor = switch (type) {
       RigType.jib   => const Color(0xFFA7A9AC),

@@ -299,7 +299,7 @@ class DrawnItem {
         RigType.rail => 304.0 / 800.0,
       };
     }
-    if (tool == Tool.camera) return 51.0 / 75.0;
+    if (tool == Tool.camera) return 2.0 / 3.0;
     return 1.0;
   }
 
