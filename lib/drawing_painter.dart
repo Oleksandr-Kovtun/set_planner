@@ -275,9 +275,9 @@ class DrawingPainter extends CustomPainter {
     }
   }
 
-  // Camera icon — polygon scaled from SVG (viewBox 152×152):
-  // points="32 16 67.28 65.13 34.47 68.72 32.95 126.36 45.66 136
-  //         106.34 136 119.05 126.36 117.53 68.72 84.72 65.13 120 16"
+  // Camera icon — new design: triangle fin (top) + rounded-rect body (bottom).
+  // Source SVG viewBox 1024×1024, content bounding box x:[292,732] y:[188.15,835.84]
+  // → normalised width=440, height=647.69, aspect ratio ≈ 2:3.
   void _drawCamera(Canvas canvas, DrawnItem item, Paint stroke, Paint? fill) {
     final pts = item.points;
     if (pts.length < 2) return;
@@ -288,22 +288,38 @@ class DrawingPainter extends CustomPainter {
     final bodyColor = item.fillColor ?? const Color(0xFF455A64);
     final bodyFill = Paint()..color = bodyColor..style = PaintingStyle.fill;
 
-    // Coordinates normalised by dividing original SVG values by 152
-    final path = Path()
-      ..moveTo(l + 0.2105 * W, t + 0.1053 * H)  // 32, 16
-      ..lineTo(l + 0.4426 * W, t + 0.4285 * H)  // 67.28, 65.13
-      ..lineTo(l + 0.2268 * W, t + 0.4521 * H)  // 34.47, 68.72
-      ..lineTo(l + 0.2167 * W, t + 0.8313 * H)  // 32.95, 126.36
-      ..lineTo(l + 0.3004 * W, t + 0.8947 * H)  // 45.66, 136
-      ..lineTo(l + 0.6996 * W, t + 0.8947 * H)  // 106.34, 136
-      ..lineTo(l + 0.7832 * W, t + 0.8313 * H)  // 119.05, 126.36
-      ..lineTo(l + 0.7732 * W, t + 0.4521 * H)  // 117.53, 68.72
-      ..lineTo(l + 0.5574 * W, t + 0.4285 * H)  // 84.72, 65.13
-      ..lineTo(l + 0.7895 * W, t + 0.1053 * H)  // 120, 16
+    // Rounded-rect body — lower 71.79% of height, full width, rx/ry from SVG rx=50.
+    final bodyRect = Rect.fromLTRB(l, t + 0.2821 * H, l + W, t + H);
+    final bodyRRect = RRect.fromRectXY(bodyRect, 0.1136 * W, 0.0772 * H);
+
+    // Triangle fin — flat top with rounded outer corners, apex pointing down into body.
+    final triPath = Path()
+      ..moveTo(l + 0.5642 * W, t + 0.4856 * H)       // apex (bottom centre)
+      ..lineTo(l + 0.9127 * W, t + 0.0755 * H)       // upper-right shoulder
+      ..cubicTo(                                        // round top-right corner
+        l + 0.9412 * W, t + 0.0419 * H,
+        l + 0.9056 * W, t,
+        l + 0.8485 * W, t,
+      )
+      ..lineTo(l + 0.1515 * W, t)                     // top-left corner
+      ..cubicTo(                                        // round top-left corner
+        l + 0.0944 * W, t,
+        l + 0.0588 * W, t + 0.0419 * H,
+        l + 0.0873 * W, t + 0.0755 * H,
+      )
+      ..lineTo(l + 0.4358 * W, t + 0.4856 * H)       // lower-left of apex
+      ..cubicTo(                                        // smooth apex curve
+        l + 0.4643 * W, t + 0.5190 * H,
+        l + 0.5357 * W, t + 0.5190 * H,
+        l + 0.5641 * W, t + 0.4856 * H,
+      )
       ..close();
 
-    canvas.drawPath(path, bodyFill);
-    canvas.drawPath(path, stroke);
+    // Draw fills first, then strokes so borders render on top.
+    canvas.drawPath(triPath, bodyFill);
+    canvas.drawPath(triPath, stroke);
+    canvas.drawRRect(bodyRRect, bodyFill);
+    canvas.drawRRect(bodyRRect, stroke);
   }
 
   // Actor shape from SVG viewBox 152×152:

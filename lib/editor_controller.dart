@@ -74,7 +74,7 @@ class EditorController extends ChangeNotifier {
   bool get hasClipboard => _clipboard.isNotEmpty;
 
   // Поточний розмір камери — змінюється при ресайзі і застосовується до всіх камер
-  Size _cameraSize = const Size(75, 75);
+  Size _cameraSize = const Size(51, 75);
   // Поточний розмір актора — змінювати тут для зміни дефолтного розміру
   Size _actorSize = const Size(80, 80);
 
