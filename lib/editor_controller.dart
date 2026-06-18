@@ -81,6 +81,32 @@ class EditorController extends ChangeNotifier {
   RigType _rigType = RigType.jib;
   RigType get rigType => _rigType;
 
+  // ---- поточний файл проєкту ----
+  String? _currentFilePath;
+  String? get currentFilePath => _currentFilePath;
+
+  String? get projectName {
+    final p = _currentFilePath;
+    if (p == null) return null;
+    final filename = p.replaceAll('\\', '/').split('/').last;
+    final dot = filename.lastIndexOf('.');
+    return dot > 0 ? filename.substring(0, dot) : filename;
+  }
+
+  void setCurrentFilePath(String? path) {
+    if (_currentFilePath == path) return;
+    _currentFilePath = path;
+    notifyListeners();
+  }
+
+  // Сигнал для TopMenuBar — збільшується при кожному Cmd+S
+  int _saveSignal = 0;
+  int get saveSignal => _saveSignal;
+  void requestSave() {
+    _saveSignal++;
+    notifyListeners();
+  }
+
   bool _showCameraKit = true;
   bool get showCameraKit => _showCameraKit;
   void toggleCameraKit() {

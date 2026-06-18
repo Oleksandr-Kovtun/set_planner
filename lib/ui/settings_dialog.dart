@@ -1,6 +1,9 @@
+import 'dart:io';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import '../models/settings.dart';
 import '../l10n/app_strings.dart';
+import '../models/settings.dart';
+import '../prefs.dart';
 
 class SettingsDialog extends StatefulWidget {
   final AppSettings initialSettings;
@@ -18,15 +21,23 @@ class SettingsDialog extends StatefulWidget {
 
 class _SettingsDialogState extends State<SettingsDialog> {
   late AppSettings settings;
+  late final TextEditingController _folderCtrl;
 
-  // Strings driven by the language currently selected inside the dialog,
-  // so the UI preview updates in real-time when the user picks a language.
   AppStrings get _str => AppStrings.of(settings.language);
 
   @override
   void initState() {
     super.initState();
     settings = widget.initialSettings.copy();
+    _folderCtrl = TextEditingController(
+      text: AppPrefs.instance.projectsFolder ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _folderCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -63,10 +74,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
               _buildSectionTitle(s.language),
               const SizedBox(height: 12),
               _buildLanguagePicker(s),
-              const Divider(height: 32),
-              _buildSectionTitle(s.uiSection),
-              const SizedBox(height: 12),
-              _buildColorPicker(s),
+              if (!Platform.isIOS && !Platform.isAndroid) ...[
+                const Divider(height: 32),
+                _buildSectionTitle(s.projectsSection),
+                const SizedBox(height: 12),
+                _buildProjectsFolderRow(s),
+              ],
             ],
           ),
         ),
@@ -78,6 +91,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
         ),
         ElevatedButton(
           onPressed: () {
+            final folder = _folderCtrl.text.trim();
+            AppPrefs.instance.projectsFolder = folder.isEmpty ? null : folder;
+            AppPrefs.instance.save();
             widget.onSave(settings);
             Navigator.pop(context);
           },
@@ -282,108 +298,37 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildColorPicker(AppStrings s) {
+  Widget _buildProjectsFolderRow(AppStrings s) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(s.primaryColor),
-        GestureDetector(
-          onTap: () async {
-            final color = await showDialog<Color>(
-              context: context,
-              builder: (context) => _ColorPickerDialog(
-                initialColor: settings.primaryColor,
-                str: _str,
-              ),
-            );
-            if (color != null) {
-              setState(() => settings.primaryColor = color);
-            }
-          },
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: settings.primaryColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey),
+        Expanded(
+          child: TextField(
+            controller: _folderCtrl,
+            decoration: InputDecoration(
+              isDense: true,
+              border: const OutlineInputBorder(),
+              hintText: s.projectsFolderHint,
             ),
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _ColorPickerDialog extends StatefulWidget {
-  final Color initialColor;
-  final AppStrings str;
-
-  const _ColorPickerDialog({required this.initialColor, required this.str});
-
-  @override
-  State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
-}
-
-class _ColorPickerDialogState extends State<_ColorPickerDialog> {
-  late Color selectedColor;
-
-  @override
-  void initState() {
-    super.initState();
-    selectedColor = widget.initialColor;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = [
-      Colors.blue,
-      Colors.purple,
-      Colors.pink,
-      Colors.red,
-      Colors.orange,
-      Colors.amber,
-      Colors.green,
-      Colors.teal,
-      Colors.cyan,
-      Colors.indigo,
-    ];
-
-    return AlertDialog(
-      title: Text(widget.str.pickColor),
-      content: GridView.count(
-        crossAxisCount: 5,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        shrinkWrap: true,
-        children: colors.map((color) {
-          final isSelected = selectedColor == color;
-          return GestureDetector(
-            onTap: () {
-              setState(() => selectedColor = color);
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(8),
-                border: isSelected
-                    ? Border.all(color: Colors.black, width: 3)
-                    : Border.all(color: Colors.grey, width: 1),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(widget.str.cancel),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, selectedColor),
-          child: Text(widget.str.select),
+        const SizedBox(width: 8),
+        IconButton(
+          tooltip: s.select,
+          icon: const Icon(Icons.folder_open),
+          onPressed: _pickProjectsFolder,
         ),
       ],
     );
+  }
+
+  Future<void> _pickProjectsFolder() async {
+    try {
+      final picked = await getDirectoryPath();
+      if (picked != null && mounted) {
+        _folderCtrl.text = picked;
+      }
+    } catch (_) {
+      // Directory picking not available on this platform.
+    }
   }
 }

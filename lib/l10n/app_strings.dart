@@ -57,6 +57,7 @@ class AppStrings {
   final String openProject, saveAsProject, saveError, openError, saveToFilesHint, exportError;
   final String exportPdf, pdfColViewfinder, pdfColHeadphones;
   final String toggleCameraKit;
+  final String projectsFolder, projectsFolderHint, untitled, newProjectName, projectsSection;
 
   const AppStrings({
     required this.appTitle,
@@ -196,6 +197,11 @@ class AppStrings {
     required this.pdfColViewfinder,
     required this.pdfColHeadphones,
     required this.toggleCameraKit,
+    required this.projectsFolder,
+    required this.projectsFolderHint,
+    required this.untitled,
+    required this.newProjectName,
+    required this.projectsSection,
   });
 
   // Назва фігури за інструментом.
@@ -320,10 +326,10 @@ class AppStrings {
     viewfinderNone: 'Немає',
     viewfinderSmall: 'Малий',
     viewfinderBig: 'Великий',
-    headphones: 'Навушники',
+    headphones: 'Гарнітура',
     headphonesNone: 'Немає',
-    headphonesSingle: 'Одинарні',
-    headphonesDouble: 'Подвійні',
+    headphonesSingle: 'Одинарна',
+    headphonesDouble: 'Подвійна',
     tripod: 'Штатив',
     tripodDescription: 'Опис штатива',
     wheels: 'Колеса',
@@ -368,6 +374,11 @@ class AppStrings {
     pdfColViewfinder: 'VF',
     pdfColHeadphones: 'Headset',
     toggleCameraKit: 'Camera Kit',
+    projectsSection: 'Проєкти',
+    projectsFolder: 'Папка проєктів',
+    projectsFolderHint: 'Не вибрано',
+    untitled: 'Без назви',
+    newProjectName: 'Назва проєкту',
   );
 
   // ===== English =====
@@ -461,7 +472,7 @@ class AppStrings {
     viewfinderNone: 'None',
     viewfinderSmall: 'Small',
     viewfinderBig: 'Big',
-    headphones: 'Headphones',
+    headphones: 'Headset',
     headphonesNone: 'None',
     headphonesSingle: 'Single',
     headphonesDouble: 'Double',
@@ -509,6 +520,11 @@ class AppStrings {
     pdfColViewfinder: 'VF',
     pdfColHeadphones: 'Headset',
     toggleCameraKit: 'Camera Kit',
+    projectsSection: 'Projects',
+    projectsFolder: 'Projects Folder',
+    projectsFolderHint: 'Not set',
+    untitled: 'Untitled',
+    newProjectName: 'Project Name',
   );
 
   static AppStrings of(String languageCode) {

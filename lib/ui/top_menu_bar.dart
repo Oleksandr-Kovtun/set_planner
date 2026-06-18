@@ -14,6 +14,7 @@ import '../editor_controller.dart';
 import '../l10n/app_strings.dart';
 import '../models.dart';
 import '../models/settings.dart';
+import '../prefs.dart';
 import '../project_io.dart';
 import 'settings_dialog.dart';
 
@@ -26,13 +27,34 @@ class TopMenuBar extends StatefulWidget {
 }
 
 class _TopMenuBarState extends State<TopMenuBar> {
-  String? _savePath;
+  int _lastSaveSignal = 0;
 
   // GlobalKeys for buttons that trigger Share Sheet — needed on iPad to anchor the popover.
   final _saveKey      = GlobalKey();
   final _saveAsKey    = GlobalKey();
   final _exportImgKey = GlobalKey();
   final _exportPdfKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _lastSaveSignal = widget.controller.saveSignal;
+    widget.controller.addListener(_onControllerUpdate);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerUpdate);
+    super.dispose();
+  }
+
+  void _onControllerUpdate() {
+    final sig = controller.saveSignal;
+    if (sig != _lastSaveSignal) {
+      _lastSaveSignal = sig;
+      _saveProject();
+    }
+  }
 
   // Returns the screen Rect of the widget identified by [key].
   // On non-iPad platforms returns null (share_plus ignores it).
@@ -53,21 +75,20 @@ class _TopMenuBarState extends State<TopMenuBar> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: () => _showSettings(context),
-              child: Text(
-                strings.appTitle,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+          Text(
+            strings.appTitle,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 16),
+          IconButton(
+            tooltip: strings.settings,
+            onPressed: () => _showSettings(context),
+            icon: const Icon(Icons.settings_outlined),
+            color: Colors.white,
+          ),
           ListenableBuilder(
             listenable: controller,
             builder: (context, _) => Row(children: [
@@ -122,7 +143,18 @@ class _TopMenuBarState extends State<TopMenuBar> {
             icon: const Icon(Icons.picture_as_pdf_outlined),
             color: Colors.white,
           ),
-          const Spacer(),
+          Expanded(
+            child: Center(
+              child: ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) => Text(
+                  controller.projectName ?? strings.untitled,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ),
           ListenableBuilder(
             listenable: controller,
             builder: (context, _) => IconButton(
@@ -204,9 +236,23 @@ class _TopMenuBarState extends State<TopMenuBar> {
       await _saveViaShareSheet(_saveKey);
       return;
     }
-    final path = _savePath ?? await _showSaveAsDialog();
-    if (path == null) return;
-    await _writeToPath(path);
+    final currentPath = controller.currentFilePath;
+    if (currentPath != null) {
+      await _writeToPath(currentPath);
+    } else {
+      final dir = await AppPrefs.instance.effectiveProjectsFolder();
+      if (!mounted) return;
+      final path = await showDialog<String>(
+        context: context,
+        builder: (ctx) => _SaveAsDialog(
+          defaultDir: dir,
+          defaultName: strings.untitled,
+          extension: '.splan',
+        ),
+      );
+      if (path == null) return;
+      await _writeToPath(path);
+    }
   }
 
   Future<void> _saveViaShareSheet(GlobalKey anchorKey) async {
@@ -243,8 +289,10 @@ class _TopMenuBarState extends State<TopMenuBar> {
         offset: controller.offset,
       );
       await File(path).writeAsString(xml);
+      AppPrefs.instance.lastFilePath = path;
+      AppPrefs.instance.save();
       if (mounted) {
-        setState(() => _savePath = path);
+        controller.setCurrentFilePath(path);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${strings.saveProject}: $path'),
@@ -268,12 +316,12 @@ class _TopMenuBarState extends State<TopMenuBar> {
     String defaultName = 'project.splan',
     String extension = '.splan',
   }) async {
-    final docsDir = await getApplicationDocumentsDirectory();
+    final dir = await AppPrefs.instance.effectiveProjectsFolder();
     if (!mounted) return null;
     return showDialog<String>(
       context: context,
       builder: (ctx) => _SaveAsDialog(
-        defaultDir: docsDir.path,
+        defaultDir: dir,
         defaultName: defaultName,
         extension: extension,
       ),
@@ -300,7 +348,9 @@ class _TopMenuBarState extends State<TopMenuBar> {
           scale: data.scale,
           offset: data.offset,
         );
-        setState(() => _savePath = file.path);
+        controller.setCurrentFilePath(file.path);
+        AppPrefs.instance.lastFilePath = file.path;
+        AppPrefs.instance.save();
       }
     } catch (e) {
       if (mounted) {

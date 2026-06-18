@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'editor_controller.dart';
 import 'l10n/app_strings.dart';
+import 'prefs.dart';
 import 'ui/top_menu_bar.dart';
 import 'ui/tool_bar.dart';
 import 'ui/drawing_canvas.dart';
 import 'ui/properties_panel.dart';
 import 'ui/camera_list_panel.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppPrefs.load();
   // Обираємо мову за налаштуваннями системи (поки uk або en).
   final lang = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
   strings = AppStrings.of(lang);
@@ -59,6 +61,8 @@ class _EditorScreenState extends State<EditorScreen> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    final lastPath = AppPrefs.instance.lastFilePath;
+    if (lastPath != null) _controller.setCurrentFilePath(lastPath);
     _controller.addListener(_onControllerChanged);
 
     _cameraListAC = AnimationController(
@@ -216,6 +220,9 @@ class _EditorScreenState extends State<EditorScreen> with TickerProviderStateMix
           return KeyEventResult.handled;
         case LogicalKeyboardKey.keyD:
           _controller.duplicate();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyS:
+          _controller.requestSave();
           return KeyEventResult.handled;
         default:
           break;
