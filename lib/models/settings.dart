@@ -44,9 +44,10 @@ class AppSettings {
   PaperOrientation paperOrientation;
 
   // Сітка
-  double gridSize; // розмір комірки сітки в пікселях
-  bool showGrid; // видимість сітки
+  double gridSize; // розмір комірки сітки для привʼязки
+  bool showGrid; // видимість сітки привʼязки
   bool snapToGrid; // привʼязування до сітки
+  bool showBigGrid; // відображення великої сітки 100 px
 
   // Інтерфейс
   Color primaryColor; // основний колір UI
@@ -64,6 +65,7 @@ class AppSettings {
     this.gridSize = 20.0,
     this.showGrid = true,
     this.snapToGrid = true,
+    this.showBigGrid = false,
     this.primaryColor = Colors.blue,
     this.cameraNumberStyle = CameraNumberStyle.numeric,
     Set<CameraInfoField>? cameraInfoFields,
@@ -76,6 +78,7 @@ class AppSettings {
     double? gridSize,
     bool? showGrid,
     bool? snapToGrid,
+    bool? showBigGrid,
     Color? primaryColor,
     CameraNumberStyle? cameraNumberStyle,
     Set<CameraInfoField>? cameraInfoFields,
@@ -87,6 +90,7 @@ class AppSettings {
       gridSize: gridSize ?? this.gridSize,
       showGrid: showGrid ?? this.showGrid,
       snapToGrid: snapToGrid ?? this.snapToGrid,
+      showBigGrid: showBigGrid ?? this.showBigGrid,
       primaryColor: primaryColor ?? this.primaryColor,
       cameraNumberStyle: cameraNumberStyle ?? this.cameraNumberStyle,
       cameraInfoFields: cameraInfoFields ?? Set.of(this.cameraInfoFields),

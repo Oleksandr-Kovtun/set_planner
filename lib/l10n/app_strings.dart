@@ -52,7 +52,7 @@ class AppStrings {
   final String paperSize, orientation;
   final String portrait, landscape;
   final String gridSizeLabel;
-  final String showGrid, snapToGrid;
+  final String showGrid, snapToGrid, showBigGrid;
   final String primaryColor, pickColor, select;
   final String openProject, saveAsProject, saveError, openError, saveToFilesHint, exportError;
   final String exportPdf, pdfColViewfinder, pdfColHeadphones;
@@ -184,6 +184,7 @@ class AppStrings {
     required this.gridSizeLabel,
     required this.showGrid,
     required this.snapToGrid,
+    required this.showBigGrid,
     required this.primaryColor,
     required this.pickColor,
     required this.select,
@@ -361,6 +362,7 @@ class AppStrings {
     gridSizeLabel: 'Розмір комірки',
     showGrid: 'Показувати сітку',
     snapToGrid: 'Привʼязувати до сітки',
+    showBigGrid: 'Показувати сітку м²',
     primaryColor: 'Основний колір',
     pickColor: 'Оберіть колір',
     select: 'Вибрати',
@@ -507,6 +509,7 @@ class AppStrings {
     gridSizeLabel: 'Cell size',
     showGrid: 'Show grid',
     snapToGrid: 'Snap to grid',
+    showBigGrid: 'Show m² grid',
     primaryColor: 'Primary color',
     pickColor: 'Pick a color',
     select: 'Select',

@@ -75,6 +75,12 @@ class _TopMenuBarState extends State<TopMenuBar> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
+          IconButton(
+            tooltip: strings.settings,
+            onPressed: () => _showSettings(context),
+            icon: const Icon(Icons.settings_outlined),
+            color: Colors.white,
+          ),
           Text(
             strings.appTitle,
             style: const TextStyle(
@@ -82,12 +88,6 @@ class _TopMenuBarState extends State<TopMenuBar> {
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
-          ),
-          IconButton(
-            tooltip: strings.settings,
-            onPressed: () => _showSettings(context),
-            icon: const Icon(Icons.settings_outlined),
-            color: Colors.white,
           ),
           ListenableBuilder(
             listenable: controller,
@@ -420,6 +420,7 @@ class _TopMenuBarState extends State<TopMenuBar> {
         scale: scaleFactor,
         offset: exportOffset,
         showGrid: false,
+        showBigGrid: s.showBigGrid,
         cameraInfoFields: s.cameraInfoFields,
       ).paint(canvas, Size(paperW, paperH));
 

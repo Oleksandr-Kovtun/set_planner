@@ -64,6 +64,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
               _buildGridToggle(s),
               const SizedBox(height: 12),
               _buildSnapToGridToggle(s),
+              const SizedBox(height: 12),
+              _buildBigGridToggle(s),
               const Divider(height: 32),
               _buildSectionTitle(s.cameras),
               const SizedBox(height: 12),
@@ -279,6 +281,19 @@ class _SettingsDialogState extends State<SettingsDialog> {
             },
           );
         }),
+      ],
+    );
+  }
+
+  Widget _buildBigGridToggle(AppStrings s) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(s.showBigGrid),
+        Switch(
+          value: settings.showBigGrid,
+          onChanged: (value) => setState(() => settings.showBigGrid = value),
+        ),
       ],
     );
   }

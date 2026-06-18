@@ -16,6 +16,7 @@ class DrawingPainter extends CustomPainter {
   final int? editingId;
   final double gridSize;
   final bool showGrid;
+  final bool showBigGrid;
   final DrawnItem? activePolyline;
   final Offset? polylineCursorPos;
   final Set<CameraInfoField> cameraInfoFields;
@@ -32,6 +33,7 @@ class DrawingPainter extends CustomPainter {
     this.editingId,
     this.gridSize = 20.0,
     this.showGrid = true,
+    this.showBigGrid = false,
     this.activePolyline,
     this.polylineCursorPos,
     this.cameraInfoFields = const {},
@@ -42,6 +44,9 @@ class DrawingPainter extends CustomPainter {
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
     canvas.scale(scale);
+    if (showBigGrid) {
+      _drawBigGrid(canvas, size);
+    }
     if (showGrid) {
       _drawGrid(canvas, size);
     }
@@ -54,6 +59,28 @@ class DrawingPainter extends CustomPainter {
     _drawSelection(canvas);
     _drawMarquee(canvas);
     canvas.restore();
+  }
+
+  void _drawBigGrid(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.grey.withValues(alpha: 0.3)
+      ..strokeWidth = 1.0 / scale;
+
+    const bigGridSize = 100.0;
+
+    final visibleLeft = -offset.dx / scale;
+    final visibleTop = -offset.dy / scale;
+    final visibleRight = visibleLeft + size.width / scale;
+    final visibleBottom = visibleTop + size.height / scale;
+
+    final startX = (visibleLeft / bigGridSize).floor() * bigGridSize;
+    for (double x = startX; x <= visibleRight; x += bigGridSize) {
+      canvas.drawLine(Offset(x, visibleTop), Offset(x, visibleBottom), paint);
+    }
+    final startY = (visibleTop / bigGridSize).floor() * bigGridSize;
+    for (double y = startY; y <= visibleBottom; y += bigGridSize) {
+      canvas.drawLine(Offset(visibleLeft, y), Offset(visibleRight, y), paint);
+    }
   }
 
   void _drawGrid(Canvas canvas, Size size) {

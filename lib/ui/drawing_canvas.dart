@@ -116,6 +116,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                   editingId: controller.editingTextItem?.id,
                   gridSize: controller.settings.gridSize,
                   showGrid: controller.settings.showGrid,
+                  showBigGrid: controller.settings.showBigGrid,
                   activePolyline: controller.activePolyline,
                   polylineCursorPos: controller.polylineCursorPos,
                   cameraInfoFields: controller.showCameraKit
