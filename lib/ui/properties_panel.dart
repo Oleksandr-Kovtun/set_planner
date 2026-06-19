@@ -748,6 +748,33 @@ class _RigPanel extends StatelessWidget {
           const SizedBox(height: 12),
 
           const Divider(height: 24),
+          Text(strings.layer),
+          const SizedBox(height: 4),
+          Row(children: [
+            IconButton(
+              tooltip: strings.toBack,
+              onPressed: controller.sendToBack,
+              icon: const Icon(Icons.vertical_align_bottom),
+            ),
+            IconButton(
+              tooltip: strings.backward,
+              onPressed: controller.sendBackward,
+              icon: const Icon(Icons.keyboard_arrow_down),
+            ),
+            IconButton(
+              tooltip: strings.forward,
+              onPressed: controller.bringForward,
+              icon: const Icon(Icons.keyboard_arrow_up),
+            ),
+            IconButton(
+              tooltip: strings.toFront,
+              onPressed: controller.bringToFront,
+              icon: const Icon(Icons.vertical_align_top),
+            ),
+          ]),
+          const SizedBox(height: 12),
+
+          const Divider(height: 24),
           FilledButton.icon(
             onPressed: controller.deleteSelected,
             icon: const Icon(Icons.delete_outline),
@@ -1073,6 +1100,14 @@ class _CameraLabelPanel extends StatelessWidget {
           _ColorRow(
             selected: label.strokeColor,
             onPick: (c) => controller.setStrokeColor(c!),
+          ),
+          const SizedBox(height: 12),
+          Text(strings.numberBgColor),
+          const SizedBox(height: 4),
+          _ColorRow(
+            selected: label.fillColor,
+            onPick: controller.setCameraNumberBgColor,
+            includeNone: true,
           ),
           const SizedBox(height: 12),
           Row(children: [

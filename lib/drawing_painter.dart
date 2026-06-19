@@ -259,6 +259,12 @@ class DrawingPainter extends CustomPainter {
             textAlign: item.textAlign,
             textDirection: TextDirection.ltr,
           )..layout();
+          if (item.fillColor != null) {
+            const pad = 3.0;
+            final bg = Paint()..color = item.fillColor!..style = PaintingStyle.fill;
+            final bgRect = item.bounds.inflate(pad);
+            canvas.drawRRect(RRect.fromRectXY(bgRect, 4, 4), bg);
+          }
           tp.paint(canvas, item.bounds.topLeft);
 
         case Tool.camera:

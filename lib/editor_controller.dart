@@ -623,6 +623,28 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setCameraNumberBgColor(Color? c) {
+    final it = selectedItem;
+    if (it == null || it.locked) return;
+    // Called from the label panel: selected item is the text label itself.
+    if (it.tool == Tool.text && it.boundToId != null) {
+      _pushUndo();
+      it.fillColor = c;
+      notifyListeners();
+      return;
+    }
+    // Called from the camera panel: selected item is the camera.
+    if (it.cameraData == null) return;
+    _pushUndo();
+    for (final item in _items) {
+      if (item.tool == Tool.text && item.boundToId == it.id) {
+        item.fillColor = c;
+        break;
+      }
+    }
+    notifyListeners();
+  }
+
   // Встановити bold/italic на мітці камери (виклик з панелі мітки)
   void setCameraLabelBold(bool v) {
     final it = selectedItem;
@@ -893,6 +915,11 @@ class EditorController extends ChangeNotifier {
 
   void panBy(Offset screenDelta) {
     _offset += screenDelta;
+    notifyListeners();
+  }
+
+  void toggleSnapToGrid() {
+    _settings = _settings.copy(snapToGrid: !_settings.snapToGrid);
     notifyListeners();
   }
 

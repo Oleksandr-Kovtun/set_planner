@@ -158,6 +158,19 @@ class _TopMenuBarState extends State<TopMenuBar> {
           ListenableBuilder(
             listenable: controller,
             builder: (context, _) => IconButton(
+              tooltip: strings.snapToGrid,
+              icon: Icon(controller.settings.snapToGrid
+                  ? Icons.grid_on
+                  : Icons.grid_off),
+              color: controller.settings.snapToGrid
+                  ? Colors.white
+                  : Colors.white38,
+              onPressed: controller.toggleSnapToGrid,
+            ),
+          ),
+          ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) => IconButton(
               tooltip: strings.toggleCameraKit,
               icon: Icon(controller.showCameraKit
                   ? Icons.table_chart

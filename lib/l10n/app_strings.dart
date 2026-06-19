@@ -37,7 +37,7 @@ class AppStrings {
   final String tripod, tripodDescription, wheels, podium, podiumDescription;
   final String cameraLabelItem, goToCamera;
   final String cameraNumberStyle, cameraNumberNumeric, cameraNumberAlphabetic;
-  final String cameraColor, description;
+  final String cameraColor, numberBgColor, description;
   final String yes;
   final String cameraInfoDisplay;
   final String allowResize;
@@ -165,6 +165,7 @@ class AppStrings {
     required this.cameraNumberNumeric,
     required this.cameraNumberAlphabetic,
     required this.cameraColor,
+    required this.numberBgColor,
     required this.description,
     required this.yes,
     required this.cameraInfoDisplay,
@@ -345,6 +346,7 @@ class AppStrings {
     cameraNumberNumeric: '1, 2, 3...',
     cameraNumberAlphabetic: 'A, B, C...',
     cameraColor: 'Колір камери',
+    numberBgColor: 'Фон номера',
     description: 'Опис',
     yes: 'Так',
     cameraInfoDisplay: 'Відображення властивостей камери',
@@ -493,6 +495,7 @@ class AppStrings {
     cameraNumberNumeric: '1, 2, 3...',
     cameraNumberAlphabetic: 'A, B, C...',
     cameraColor: 'Camera Color',
+    numberBgColor: 'Number Background',
     description: 'Description',
     yes: 'Yes',
     cameraInfoDisplay: 'Camera info on canvas',
