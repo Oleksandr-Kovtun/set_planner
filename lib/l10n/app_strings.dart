@@ -26,7 +26,7 @@ class AppStrings {
   final String convertToCurve;
   final String arrowHeadStart, arrowHeadEnd;
   // рейки / rig equipment
-  final String toolRigs, rigJib, rigDolly, rigRail, rigWidth, rigHeight;
+  final String toolRigs, rigJib, rigDolly, rigRail, rigWidth, rigHeight, railBend;
   // актори
   final String toolActor, actorName, actorProps, noActors;
   // камери
@@ -135,6 +135,7 @@ class AppStrings {
     required this.rigRail,
     required this.rigWidth,
     required this.rigHeight,
+    required this.railBend,
     required this.toolActor,
     required this.actorName,
     required this.actorProps,
@@ -313,6 +314,7 @@ class AppStrings {
     rigRail: 'Рейки',
     rigWidth: 'Ширина',
     rigHeight: 'Висота',
+    railBend: 'Вигин',
     toolActor: 'Актор',
     actorName: 'Ім\'я',
     actorProps: 'Реквізит',
@@ -460,6 +462,7 @@ class AppStrings {
     rigRail: 'Rails',
     rigWidth: 'Width',
     rigHeight: 'Height',
+    railBend: 'Bend',
     toolActor: 'Actor',
     actorName: 'Name',
     actorProps: 'Props',

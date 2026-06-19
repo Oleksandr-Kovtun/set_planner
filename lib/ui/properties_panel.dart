@@ -729,6 +729,15 @@ class _RigPanel extends StatelessWidget {
             onSubmit: controller.setRigHeight,
           ),
 
+          if (rig.type == RigType.rail && h > 400) ...[
+            const SizedBox(height: 12),
+            _RailBendSlider(
+              bend: rig.bend,
+              maxBend: EditorController.maxRailBend(h),
+              onChanged: controller.setRailBend,
+            ),
+          ],
+
           const Divider(height: 24),
           Text(strings.rotationAngle),
           const SizedBox(height: 4),
@@ -828,6 +837,37 @@ class _RigSizeFieldState extends State<_RigSizeField> {
           }
         },
       ),
+    );
+  }
+}
+
+// ---- Слайдер вигину рейок (0..maxBend) ----
+class _RailBendSlider extends StatelessWidget {
+  final double bend;
+  final double maxBend;
+  final ValueChanged<double> onChanged;
+  const _RailBendSlider({required this.bend, required this.maxBend, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Text('${strings.railBend}:'),
+          const SizedBox(width: 8),
+          Text('${bend.round()}', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(width: 4),
+          Text('/ ${maxBend.round()}', style: const TextStyle(color: Colors.grey)),
+        ]),
+        Slider(
+          value: bend.clamp(0, maxBend),
+          min: 0,
+          max: maxBend,
+          divisions: maxBend.round().clamp(1, 100),
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }

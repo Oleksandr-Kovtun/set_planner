@@ -137,7 +137,10 @@ class ProjectSerializer {
       }
       // Rig
       if (item.rigData != null) {
-        b.element('RigData', attributes: {'type': item.rigData!.type.name});
+        b.element('RigData', attributes: {
+          'type': item.rigData!.type.name,
+          'bend': item.rigData!.bend.toString(),
+        });
       }
       // Raster image
       if (item.tool == Tool.image && imageB64.containsKey(item.id)) {
@@ -312,7 +315,12 @@ class ProjectLoader {
     RigData? rigData;
     final rigEl = el.findElements('RigData').firstOrNull;
     if (rigEl != null) {
-      try { rigData = RigData(type: RigType.values.byName(rigEl.getAttribute('type') ?? '')); } catch (_) {}
+      try {
+        rigData = RigData(
+          type: RigType.values.byName(rigEl.getAttribute('type') ?? ''),
+          bend: double.tryParse(rigEl.getAttribute('bend') ?? '') ?? 0,
+        );
+      } catch (_) {}
     }
 
     // Raster image

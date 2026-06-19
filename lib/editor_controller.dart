@@ -225,6 +225,20 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  static double maxRailBend(double height) {
+    if (height < 400) return 0;
+    if (height >= 1260) return 100;
+    return 33 + (height - 400) / (1260 - 400) * 67;
+  }
+
+  void setRailBend(double v) {
+    final it = selectedItem;
+    if (it?.rigData?.type != RigType.rail || it!.locked) return;
+    _pushUndo();
+    it.rigData!.bend = v.clamp(0, maxRailBend(it.bounds.height));
+    notifyListeners();
+  }
+
   void setRigHeight(double h) {
     final it = selectedItem;
     if (it?.rigData == null || it!.locked || h <= 0) return;
@@ -246,6 +260,10 @@ class EditorController extends ChangeNotifier {
       final center = it.bounds.center;
       it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
       it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
+    }
+    // Clamp bend to new valid range after height change
+    if (it.rigData!.type == RigType.rail && it.rigData!.bend > 0) {
+      it.rigData!.bend = it.rigData!.bend.clamp(0, maxRailBend(h));
     }
     notifyListeners();
   }

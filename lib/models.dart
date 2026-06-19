@@ -82,8 +82,9 @@ enum RigType { jib, dolly, rail }
 
 class RigData {
   RigType type;
-  RigData({required this.type});
-  RigData copy() => RigData(type: type);
+  double bend; // 0–100: 0=straight, 100=full circle (rail only)
+  RigData({required this.type, this.bend = 0});
+  RigData copy() => RigData(type: type, bend: bend);
 }
 
 const List<Tool> shapeTools = [

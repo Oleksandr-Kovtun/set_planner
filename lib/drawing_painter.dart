@@ -357,7 +357,7 @@ class DrawingPainter extends CustomPainter {
     switch (item.rigData!.type) {
       case RigType.jib:   _drawJib(canvas, l, t, W, H, stroke, fill);
       case RigType.dolly: _drawDolly(canvas, l, t, W, H, stroke, fill);
-      case RigType.rail:  _drawRail(canvas, l, t, W, H, stroke);
+      case RigType.rail:  _drawRail(canvas, l, t, W, H, stroke, item.rigData!.bend);
     }
   }
 
@@ -439,26 +439,55 @@ class DrawingPainter extends CustomPainter {
   }
 
   // Camera rails — sleeper count is dynamic: spacing tied to width, count grows with height.
-  void _drawRail(Canvas canvas, double l, double t, double W, double H, Paint stroke) {
+  void _drawRail(Canvas canvas, double l, double t, double W, double H, Paint stroke, double bend) {
     if (W <= 0 || H <= 0) return;
     const railX1 = 0.2204, railX2 = 0.7796;
-    // Sleeper spacing is proportional to width (SVG ratio: 60 spacing / 304 width).
+    final halfTrack = (railX2 - railX1) * W / 2;
     final sp = W * (60.0 / 304.0);
     final count = math.max(1, ((H - sp * 0.5) / sp).floor() + 1);
     final span = (count - 1) * sp;
-    final firstY = (H - span) / 2;
+    final firstS = (H - span) / 2;
     final overhang = sp * (12.5 / 60.0);
+    final sweep = (bend / 100.0) * 2 * math.pi;
 
-    canvas.drawLine(
-      Offset(l + railX1 * W, t + firstY - overhang),
-      Offset(l + railX1 * W, t + firstY + span + overhang), stroke);
-    canvas.drawLine(
-      Offset(l + railX2 * W, t + firstY - overhang),
-      Offset(l + railX2 * W, t + firstY + span + overhang), stroke);
+    if (sweep < 0.01) {
+      // Straight rail
+      canvas.drawLine(Offset(l + railX1 * W, t + firstS - overhang),
+          Offset(l + railX1 * W, t + firstS + span + overhang), stroke);
+      canvas.drawLine(Offset(l + railX2 * W, t + firstS - overhang),
+          Offset(l + railX2 * W, t + firstS + span + overhang), stroke);
+      for (int i = 0; i < count; i++) {
+        final y = t + firstS + i * sp;
+        canvas.drawLine(Offset(l + railX1 * W, y), Offset(l + railX2 * W, y), stroke);
+      }
+      return;
+    }
 
+    // Bent rail: centreline is a circular arc of arc-length H.
+    // Centre of curvature is to the right of the track at the same y as the start.
+    final rc = H / sweep; // centreline radius
+    final rl = rc + halfTrack; // left (outer) rail
+    final rr = math.max(rc - halfTrack, 1.0); // right (inner) rail, clamped > 0
+    final cx = l + W / 2 + rc;
+    final cy = t;
+
+    // Start angle π (pointing left from cx,cy) → rail start is to the left.
+    // Negative sweep = counter-clockwise = goes downward from angle π.
+    canvas.drawArc(Rect.fromCenter(center: Offset(cx, cy), width: 2 * rl, height: 2 * rl),
+        math.pi, -sweep, false, stroke);
+    canvas.drawArc(Rect.fromCenter(center: Offset(cx, cy), width: 2 * rr, height: 2 * rr),
+        math.pi, -sweep, false, stroke);
+
+    // Sleepers: radial lines at each arc position.
     for (int i = 0; i < count; i++) {
-      final y = t + firstY + i * sp;
-      canvas.drawLine(Offset(l + railX1 * W, y), Offset(l + railX2 * W, y), stroke);
+      final s = firstS + i * sp;
+      final alpha = math.pi - s / rc;
+      final cosA = math.cos(alpha), sinA = math.sin(alpha);
+      canvas.drawLine(
+        Offset(cx + rr * cosA, cy + rr * sinA),
+        Offset(cx + rl * cosA, cy + rl * sinA),
+        stroke,
+      );
     }
   }
 
