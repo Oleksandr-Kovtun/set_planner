@@ -386,9 +386,8 @@ class EditorController extends ChangeNotifier {
 
   void _addCamera(Offset canvasP) {
     final double w = _cameraSize.width, h = _cameraSize.height;
-    final snapped = _snapToGrid(canvasP);
-    final tl = Offset(snapped.dx - w / 2, snapped.dy - h / 2);
-    final br = Offset(snapped.dx + w / 2, snapped.dy + h / 2);
+    final tl = _snapToGrid(Offset(canvasP.dx - w / 2, canvasP.dy - h / 2));
+    final br = Offset(tl.dx + w, tl.dy + h);
     final num = _nextCameraNumber();
     _pushUndo();
 
@@ -403,11 +402,12 @@ class EditorController extends ChangeNotifier {
     );
     _insertByBand(cam);
 
-    // Label starts centred at snapped, then moved above the camera body
+    // Label starts centred at camera centre, then positioned below the camera body
+    final camCenter = Offset(tl.dx + w / 2, tl.dy + h / 2);
     final label = _cameraLabel(num);
     final textItem = DrawnItem(
       Tool.text,
-      [snapped, snapped],
+      [camCenter, camCenter],
       text: label,
       boundToId: cam.id,
       band: LayerBand.camera,
@@ -422,8 +422,8 @@ class EditorController extends ChangeNotifier {
     final lw = textItem.bounds.width;
     final lh = textItem.bounds.height;
     final labelCY = br.dy + gap + lh / 2;
-    textItem.points[0] = Offset(snapped.dx - lw / 2, labelCY - lh / 2);
-    textItem.points[1] = Offset(snapped.dx + lw / 2, labelCY + lh / 2);
+    textItem.points[0] = Offset(camCenter.dx - lw / 2, labelCY - lh / 2);
+    textItem.points[1] = Offset(camCenter.dx + lw / 2, labelCY + lh / 2);
 
     _insertByBand(textItem);
 
@@ -446,9 +446,8 @@ class EditorController extends ChangeNotifier {
   }
 
   void _addActor(Offset canvasP) {
-    final snapped = _snapToGrid(canvasP);
-    final tl = Offset(snapped.dx - _actorSize.width / 2, snapped.dy - _actorSize.height / 2);
-    final br = Offset(snapped.dx + _actorSize.width / 2, snapped.dy + _actorSize.height / 2);
+    final tl = _snapToGrid(Offset(canvasP.dx - _actorSize.width / 2, canvasP.dy - _actorSize.height / 2));
+    final br = Offset(tl.dx + _actorSize.width, tl.dy + _actorSize.height);
     _pushUndo();
     final actor = DrawnItem(
       Tool.actor,
@@ -477,9 +476,8 @@ class EditorController extends ChangeNotifier {
       RigType.rail  => null,
       RigType.drone => const Color(0xFF666666),
     };
-    final snapped = _snapToGrid(canvasP);
-    final tl = Offset(snapped.dx - size.width / 2, snapped.dy - size.height / 2);
-    final br = Offset(snapped.dx + size.width / 2, snapped.dy + size.height / 2);
+    final tl = _snapToGrid(Offset(canvasP.dx - size.width / 2, canvasP.dy - size.height / 2));
+    final br = Offset(tl.dx + size.width, tl.dy + size.height);
     _pushUndo();
     final rig = DrawnItem(
       Tool.rig,
