@@ -26,7 +26,7 @@ class AppStrings {
   final String convertToCurve;
   final String arrowHeadStart, arrowHeadEnd;
   // рейки / rig equipment
-  final String toolRigs, rigJib, rigDolly, rigRail, rigWidth, rigHeight;
+  final String toolRigs, rigJib, rigDolly, rigRail, rigDrone, rigWidth, rigHeight;
   // актори
   final String toolActor, actorName, actorProps, noActors;
   // камери
@@ -133,6 +133,7 @@ class AppStrings {
     required this.rigJib,
     required this.rigDolly,
     required this.rigRail,
+    required this.rigDrone,
     required this.rigWidth,
     required this.rigHeight,
     required this.toolActor,
@@ -230,9 +231,10 @@ class AppStrings {
 
   String rigLabel(RigType type) {
     switch (type) {
-      case RigType.jib: return rigJib;
+      case RigType.jib:   return rigJib;
       case RigType.dolly: return rigDolly;
-      case RigType.rail: return rigRail;
+      case RigType.rail:  return rigRail;
+      case RigType.drone: return rigDrone;
     }
   }
 
@@ -311,6 +313,7 @@ class AppStrings {
     rigJib: 'Кран JIB',
     rigDolly: 'Візок Dolly',
     rigRail: 'Рейки',
+    rigDrone: 'Дрон',
     rigWidth: 'Ширина',
     rigHeight: 'Висота',
     toolActor: 'Актор',
@@ -458,6 +461,7 @@ class AppStrings {
     rigJib: 'JIB Crane',
     rigDolly: 'Dolly',
     rigRail: 'Rails',
+    rigDrone: 'Drone',
     rigWidth: 'Width',
     rigHeight: 'Height',
     toolActor: 'Actor',

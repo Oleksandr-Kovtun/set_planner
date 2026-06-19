@@ -78,7 +78,7 @@ class CameraData {
 // Групи рівнів (z-порядок): base завжди внизу, далі actor, найвище camera.
 enum LayerBand { base, actor, camera }
 
-enum RigType { jib, dolly, rail }
+enum RigType { jib, dolly, rail, drone }
 
 class RigData {
   RigType type;
@@ -294,9 +294,10 @@ class DrawnItem {
     }
     if (tool == Tool.rig && rigData != null) {
       return switch (rigData!.type) {
-        RigType.jib  => 304.0 / 800.0,
+        RigType.jib   => 304.0 / 800.0,
         RigType.dolly => 1.0,
-        RigType.rail => 304.0 / 800.0,
+        RigType.rail  => 304.0 / 800.0,
+        RigType.drone => 1.0,
       };
     }
     if (tool == Tool.camera) return 2.0 / 3.0;

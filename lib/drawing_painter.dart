@@ -358,6 +358,7 @@ class DrawingPainter extends CustomPainter {
       case RigType.jib:   _drawJib(canvas, l, t, W, H, stroke, fill);
       case RigType.dolly: _drawDolly(canvas, l, t, W, H, stroke, fill);
       case RigType.rail:  _drawRail(canvas, l, t, W, H, stroke);
+      case RigType.drone: _drawDrone(canvas, l, t, W, H, stroke, fill);
     }
   }
 
@@ -459,6 +460,56 @@ class DrawingPainter extends CustomPainter {
     for (int i = 0; i < count; i++) {
       final y = t + firstY + i * sp;
       canvas.drawLine(Offset(l + railX1 * W, y), Offset(l + railX2 * W, y), stroke);
+    }
+  }
+
+  // Drone — SVG viewBox 1024×1024 (square). Body path scaled by W/1024.
+  void _drawDrone(Canvas canvas, double l, double t, double W, double H, Paint stroke, Paint? fill) {
+    final s = W / 1024.0;
+
+    final bodyFill = fill != null
+        ? (Paint()..color = fill.color..style = PaintingStyle.fill)
+        : null;
+
+    final path = Path()
+      ..moveTo(l + 258.09 * s, t + 208.84 * s)
+      ..lineTo(l + 403.12 * s, t + 312.35 * s)
+      ..cubicTo(l + 468.26 * s, t + 358.85 * s, l + 555.75 * s, t + 358.85 * s, l + 620.89 * s, t + 312.35 * s)
+      ..lineTo(l + 765.92 * s, t + 208.84 * s)
+      ..cubicTo(l + 798.36 * s, t + 185.68 * s, l + 838.32 * s, t + 225.64 * s, l + 815.16 * s, t + 258.08 * s)
+      ..lineTo(l + 711.65 * s, t + 403.11 * s)
+      ..cubicTo(l + 665.15 * s, t + 468.25 * s, l + 665.15 * s, t + 555.74 * s, l + 711.65 * s, t + 620.88 * s)
+      ..lineTo(l + 815.16 * s, t + 765.91 * s)
+      ..cubicTo(l + 838.32 * s, t + 798.35 * s, l + 798.36 * s, t + 838.31 * s, l + 765.92 * s, t + 815.15 * s)
+      ..lineTo(l + 620.89 * s, t + 711.64 * s)
+      ..cubicTo(l + 555.75 * s, t + 665.14 * s, l + 468.26 * s, t + 665.14 * s, l + 403.12 * s, t + 711.64 * s)
+      ..lineTo(l + 258.09 * s, t + 815.15 * s)
+      ..cubicTo(l + 225.65 * s, t + 838.31 * s, l + 185.69 * s, t + 798.35 * s, l + 208.85 * s, t + 765.91 * s)
+      ..lineTo(l + 312.36 * s, t + 620.88 * s)
+      ..cubicTo(l + 358.86 * s, t + 555.74 * s, l + 358.86 * s, t + 468.25 * s, l + 312.36 * s, t + 403.11 * s)
+      ..lineTo(l + 208.85 * s, t + 258.08 * s)
+      ..cubicTo(l + 185.69 * s, t + 225.64 * s, l + 225.65 * s, t + 185.68 * s, l + 258.09 * s, t + 208.84 * s)
+      ..close();
+
+    if (bodyFill != null) canvas.drawPath(path, bodyFill);
+    canvas.drawPath(path, stroke);
+
+    // Propeller rings (stroke only, SVG class "e", stroke-width 4px → 4/1024 * W)
+    final ringStroke = Paint()
+      ..color = stroke.color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(stroke.strokeWidth, 4.0 * s);
+    final propR = 169.63 * s;
+    for (final c in [(241.63, 241.63), (782.37, 241.63), (241.63, 782.37), (782.37, 782.37)]) {
+      canvas.drawCircle(Offset(l + c.$1 * s, t + c.$2 * s), propR, ringStroke);
+    }
+
+    // Motor hubs (filled dots, SVG class "b", fill #cbccd2)
+    final hubFill = Paint()..color = const Color(0xFFCBCCD2)..style = PaintingStyle.fill;
+    final hubR = 23.94 * s;
+    for (final c in [(241.63, 241.63), (782.37, 241.63), (241.63, 782.37), (782.37, 782.37)]) {
+      canvas.drawCircle(Offset(l + c.$1 * s, t + c.$2 * s), hubR, hubFill);
+      canvas.drawCircle(Offset(l + c.$1 * s, t + c.$2 * s), hubR, stroke);
     }
   }
 

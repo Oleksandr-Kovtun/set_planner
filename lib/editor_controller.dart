@@ -469,11 +469,13 @@ class EditorController extends ChangeNotifier {
       RigType.jib   => const Size(160, 400),
       RigType.dolly => const Size(160, 160),
       RigType.rail  => const Size(160, 400),
+      RigType.drone => const Size(160, 160),
     };
     final Color? fillColor = switch (type) {
       RigType.jib   => const Color(0xFFA7A9AC),
       RigType.dolly => const Color(0xFFA7A9AC),
       RigType.rail  => null,
+      RigType.drone => const Color(0xFF666666),
     };
     final snapped = _snapToGrid(canvasP);
     final tl = Offset(snapped.dx - size.width / 2, snapped.dy - size.height / 2);
@@ -485,7 +487,7 @@ class EditorController extends ChangeNotifier {
       band: LayerBand.base,
       strokeColor: const Color(0xFF000000),
       fillColor: fillColor,
-      lockAspect: type == RigType.dolly,
+      lockAspect: type == RigType.dolly || type == RigType.drone,
       rigData: RigData(type: type),
     );
     _insertByBand(rig);
