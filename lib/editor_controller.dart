@@ -205,6 +205,34 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setImageWidth(double w) {
+    final it = selectedItem;
+    if (it == null || it.tool != Tool.image || it.locked) return;
+    w = w.clamp(1, 10000);
+    _pushUndo();
+    final center = it.bounds.center;
+    final h = it.lockAspect && it.bounds.width > 0
+        ? w * it.bounds.height / it.bounds.width
+        : it.bounds.height;
+    it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
+    it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
+    notifyListeners();
+  }
+
+  void setImageHeight(double h) {
+    final it = selectedItem;
+    if (it == null || it.tool != Tool.image || it.locked) return;
+    h = h.clamp(1, 10000);
+    _pushUndo();
+    final center = it.bounds.center;
+    final w = it.lockAspect && it.bounds.height > 0
+        ? h * it.bounds.width / it.bounds.height
+        : it.bounds.width;
+    it.points[0] = Offset(center.dx - w / 2, center.dy - h / 2);
+    it.points[1] = Offset(center.dx + w / 2, center.dy + h / 2);
+    notifyListeners();
+  }
+
   void setRigWidth(double w) {
     final it = selectedItem;
     if (it?.rigData == null || it!.locked || w <= 0) return;

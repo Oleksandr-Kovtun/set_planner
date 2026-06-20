@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import '../editor_controller.dart';
 import '../models.dart';
@@ -182,6 +183,24 @@ class PropertiesPanel extends StatelessWidget {
           ],
 
           if (item.tool == Tool.image) ...[
+            Text('${strings.rigWidth}:'),
+            const SizedBox(height: 4),
+            _SpinField(
+              value: item.bounds.width,
+              min: 1, max: 10000, suffix: 'px',
+              fieldWidth: 96,
+              onSubmit: controller.setImageWidth,
+            ),
+            const SizedBox(height: 12),
+            Text('${strings.rigHeight}:'),
+            const SizedBox(height: 4),
+            _SpinField(
+              value: item.bounds.height,
+              min: 1, max: 10000, suffix: 'px',
+              fieldWidth: 96,
+              onSubmit: controller.setImageHeight,
+            ),
+            const SizedBox(height: 12),
             Text('${strings.opacity}: ${(item.opacity * 100).round()}%'),
             Slider(
               value: item.opacity,
@@ -400,6 +419,7 @@ class _RotationField extends StatefulWidget {
 class _RotationFieldState extends State<_RotationField> {
   late final TextEditingController _ctrl;
   final FocusNode _focus = FocusNode();
+  double _dragAccum = 0;
 
   @override
   void initState() {
@@ -426,6 +446,21 @@ class _RotationFieldState extends State<_RotationField> {
     }
   }
 
+  void _step(double delta) {
+    final current = double.tryParse(_ctrl.text.replaceAll(',', '.')) ?? widget.degrees;
+    final next = current + delta;
+    _ctrl.text = _format(next);
+    widget.onSubmit(next);
+  }
+
+  void _onDragDelta(double dy) {
+    _dragAccum -= dy;
+    while (_dragAccum.abs() >= 4) {
+      _step(_dragAccum > 0 ? 1 : -1);
+      _dragAccum += _dragAccum > 0 ? -4 : 4;
+    }
+  }
+
   @override
   void dispose() {
     _ctrl.dispose();
@@ -435,25 +470,41 @@ class _RotationFieldState extends State<_RotationField> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 96,
-      child: TextField(
-        controller: _ctrl,
-        focusNode: _focus,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-        textInputAction: TextInputAction.done,
-        decoration: const InputDecoration(
-          isDense: true,
-          border: OutlineInputBorder(),
-          suffixText: '°',
-        ),
-        onSubmitted: (_) => _apply(),
-        onTapOutside: (_) {
-          if (_focus.hasFocus) {
-            _focus.unfocus();
-            _apply();
-          }
-        },
+    return Listener(
+      onPointerSignal: (e) {
+        if (e is PointerScrollEvent && _focus.hasFocus) {
+          _step(e.scrollDelta.dy < 0 ? 1 : -1);
+        }
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 80,
+            child: TextField(
+              controller: _ctrl,
+              focusNode: _focus,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+                suffixText: '°',
+              ),
+              onSubmitted: (_) => _apply(),
+              onTapOutside: (_) {
+                if (_focus.hasFocus) { _focus.unfocus(); _apply(); }
+              },
+            ),
+          ),
+          const SizedBox(width: 2),
+          _SpinArrows(
+            onUp: () => _step(1),
+            onDown: () => _step(-1),
+            onDragDelta: _onDragDelta,
+          ),
+        ],
       ),
     );
   }
@@ -715,8 +766,9 @@ class _RigPanel extends StatelessWidget {
           if (rig.type != RigType.jib) ...[
             Text('${strings.rigWidth}:'),
             const SizedBox(height: 4),
-            _RigSizeField(
+            _SpinField(
               value: w,
+              min: 1, max: 10000, suffix: 'px',
               onSubmit: controller.setRigWidth,
             ),
             const SizedBox(height: 12),
@@ -724,8 +776,9 @@ class _RigPanel extends StatelessWidget {
 
           Text('${strings.rigHeight}:'),
           const SizedBox(height: 4),
-          _RigSizeField(
+          _SpinField(
             value: h,
+            min: 1, max: 10000, suffix: 'px',
             onSubmit: controller.setRigHeight,
           ),
 
@@ -787,19 +840,38 @@ class _RigPanel extends StatelessWidget {
   }
 }
 
-// ---- Числове поле розміру ригу (px) ----
-class _RigSizeField extends StatefulWidget {
+// ---- Універсальний числовий спінер (текст + стрілки + scroll + drag) ----
+class _SpinField extends StatefulWidget {
   final double value;
+  final double min;
+  final double max;
+  final double step;
+  final String? suffix;
+  final bool signed;
+  final int fractionDigits;
+  final double fieldWidth;
   final ValueChanged<double> onSubmit;
-  const _RigSizeField({required this.value, required this.onSubmit});
+
+  const _SpinField({
+    required this.value,
+    required this.onSubmit,
+    this.min = double.negativeInfinity,
+    this.max = double.infinity,
+    this.step = 1.0,
+    this.suffix,
+    this.signed = false,
+    this.fractionDigits = 0,
+    this.fieldWidth = 80,
+  });
 
   @override
-  State<_RigSizeField> createState() => _RigSizeFieldState();
+  State<_SpinField> createState() => _SpinFieldState();
 }
 
-class _RigSizeFieldState extends State<_RigSizeField> {
+class _SpinFieldState extends State<_SpinField> {
   late final TextEditingController _ctrl;
   final FocusNode _focus = FocusNode();
+  double _dragAccum = 0;
 
   @override
   void initState() {
@@ -808,20 +880,9 @@ class _RigSizeFieldState extends State<_RigSizeField> {
   }
 
   @override
-  void didUpdateWidget(covariant _RigSizeField old) {
+  void didUpdateWidget(covariant _SpinField old) {
     super.didUpdateWidget(old);
     if (!_focus.hasFocus && widget.value != old.value) {
-      _ctrl.text = _format(widget.value);
-    }
-  }
-
-  String _format(double v) => v.round().toString();
-
-  void _apply() {
-    final parsed = double.tryParse(_ctrl.text.replaceAll(',', '.'));
-    if (parsed != null && parsed > 0) {
-      widget.onSubmit(parsed);
-    } else {
       _ctrl.text = _format(widget.value);
     }
   }
@@ -833,27 +894,126 @@ class _RigSizeFieldState extends State<_RigSizeField> {
     super.dispose();
   }
 
+  String _format(double v) {
+    final c = v.clamp(widget.min, widget.max);
+    return widget.fractionDigits == 0 ? c.round().toString() : c.toStringAsFixed(widget.fractionDigits);
+  }
+
+  double _clamp(double v) => v.clamp(widget.min, widget.max);
+
+  void _apply() {
+    final parsed = double.tryParse(_ctrl.text.replaceAll(',', '.'));
+    if (parsed != null) {
+      widget.onSubmit(_clamp(parsed));
+    } else {
+      _ctrl.text = _format(widget.value);
+    }
+  }
+
+  void _step(double delta) {
+    final current = double.tryParse(_ctrl.text.replaceAll(',', '.')) ?? widget.value;
+    final next = _clamp(current + delta);
+    _ctrl.text = _format(next);
+    widget.onSubmit(next);
+  }
+
+  void _onDragDelta(double dy) {
+    _dragAccum -= dy;
+    while (_dragAccum.abs() >= 4) {
+      _step(_dragAccum > 0 ? widget.step : -widget.step);
+      _dragAccum += _dragAccum > 0 ? -4 : 4;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 96,
-      child: TextField(
-        controller: _ctrl,
-        focusNode: _focus,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textInputAction: TextInputAction.done,
-        decoration: const InputDecoration(
-          isDense: true,
-          border: OutlineInputBorder(),
-          suffixText: 'px',
-        ),
-        onSubmitted: (_) => _apply(),
-        onTapOutside: (_) {
-          if (_focus.hasFocus) {
-            _focus.unfocus();
-            _apply();
-          }
-        },
+    return Listener(
+      onPointerSignal: (e) {
+        if (e is PointerScrollEvent && _focus.hasFocus) {
+          _step(e.scrollDelta.dy < 0 ? widget.step : -widget.step);
+        }
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: widget.fieldWidth,
+            child: TextField(
+              controller: _ctrl,
+              focusNode: _focus,
+              keyboardType: TextInputType.numberWithOptions(
+                decimal: widget.fractionDigits > 0,
+                signed: widget.signed,
+              ),
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                isDense: true,
+                border: const OutlineInputBorder(),
+                suffixText: widget.suffix,
+              ),
+              onSubmitted: (_) => _apply(),
+              onTapOutside: (_) {
+                if (_focus.hasFocus) { _focus.unfocus(); _apply(); }
+              },
+            ),
+          ),
+          const SizedBox(width: 2),
+          _SpinArrows(
+            onUp: () => _step(widget.step),
+            onDown: () => _step(-widget.step),
+            onDragDelta: _onDragDelta,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpinArrows extends StatelessWidget {
+  final VoidCallback onUp;
+  final VoidCallback onDown;
+  final ValueChanged<double> onDragDelta;
+
+  const _SpinArrows({
+    required this.onUp,
+    required this.onDown,
+    required this.onDragDelta,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black26),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onUp,
+            onVerticalDragUpdate: (d) => onDragDelta(d.delta.dy),
+            child: const SizedBox(
+              width: 22,
+              height: 17,
+              child: Icon(Icons.keyboard_arrow_up, size: 14),
+            ),
+          ),
+          Container(height: 1, color: Colors.black26),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onDown,
+            onVerticalDragUpdate: (d) => onDragDelta(d.delta.dy),
+            child: const SizedBox(
+              width: 22,
+              height: 17,
+              child: Icon(Icons.keyboard_arrow_down, size: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1159,6 +1319,7 @@ class _CameraNumberField extends StatefulWidget {
 class _CameraNumberFieldState extends State<_CameraNumberField> {
   late final TextEditingController _c;
   final FocusNode _focus = FocusNode();
+  double _dragAccum = 0;
 
   @override
   void initState() {
@@ -1183,22 +1344,56 @@ class _CameraNumberFieldState extends State<_CameraNumberField> {
     }
   }
 
+  void _step(int delta) {
+    final current = int.tryParse(_c.text.trim()) ?? widget.number;
+    final next = (current + delta).clamp(1, 999);
+    _c.text = next.toString();
+    widget.onSubmit(next);
+  }
+
+  void _onDragDelta(double dy) {
+    _dragAccum -= dy;
+    while (_dragAccum.abs() >= 4) {
+      _step(_dragAccum > 0 ? 1 : -1);
+      _dragAccum += _dragAccum > 0 ? -4 : 4;
+    }
+  }
+
   @override
   void dispose() { _c.dispose(); _focus.dispose(); super.dispose(); }
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: 80,
-        child: TextField(
-          controller: _c,
-          focusNode: _focus,
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-          onSubmitted: (_) => _apply(),
-          onTapOutside: (_) { if (_focus.hasFocus) { _focus.unfocus(); _apply(); } },
+  Widget build(BuildContext context) => Listener(
+    onPointerSignal: (e) {
+      if (e is PointerScrollEvent && _focus.hasFocus) {
+        _step(e.scrollDelta.dy < 0 ? 1 : -1);
+      }
+    },
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 64,
+          child: TextField(
+            controller: _c,
+            focusNode: _focus,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+            onSubmitted: (_) => _apply(),
+            onTapOutside: (_) { if (_focus.hasFocus) { _focus.unfocus(); _apply(); } },
+          ),
         ),
-      );
+        const SizedBox(width: 2),
+        _SpinArrows(
+          onUp: () => _step(1),
+          onDown: () => _step(-1),
+          onDragDelta: _onDragDelta,
+        ),
+      ],
+    ),
+  );
 }
 
 // ---- Тег типу кадру ----
